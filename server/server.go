@@ -22,7 +22,8 @@ func handleResponse(w http.ResponseWriter, r *http.Request) {
 // StartServer something
 func StartServer(config Config) {
 	var srv http.Server
-	srv.Addr = config.Address
+	// add ":" in front of port no as Server requires it in that form
+	srv.Addr = ":" + config.Address
 	// http2.VerboseLogs = true
 
 	http2.ConfigureServer(&srv, nil)
