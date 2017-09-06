@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"fmt"
@@ -7,8 +7,11 @@ import (
 	"golang.org/x/net/http2"
 )
 
-type serverConfig struct {
+// Config for starting server
+type Config struct {
 	Address string
+	Cert    string
+	Key     string
 }
 
 func handleResponse(w http.ResponseWriter, r *http.Request) {
@@ -16,7 +19,8 @@ func handleResponse(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello World\n")
 }
 
-func startServer(config serverConfig) {
+// StartServer something
+func StartServer(config Config) {
 	var srv http.Server
 	srv.Addr = config.Address
 	// http2.VerboseLogs = true
@@ -24,15 +28,8 @@ func startServer(config serverConfig) {
 	http2.ConfigureServer(&srv, nil)
 
 	http.HandleFunc("/", handleResponse)
-	err := srv.ListenAndServeTLS("certs/localhost.cert", "certs/localhost.key")
+	err := srv.ListenAndServeTLS(config.Cert, config.Key)
 	if err != nil {
 		panic(err)
 	}
-}
-
-func main() {
-	config :=
-		serverConfig{Address: ":8443"}
-
-	startServer(config)
 }

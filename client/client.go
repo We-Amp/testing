@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"crypto/tls"
@@ -10,17 +10,19 @@ import (
 	"golang.org/x/net/http2"
 )
 
-type clientConfig struct {
-	url string
+// Config for client
+type Config struct {
+	URL string
 }
 
-func loadURLWithConfig(config clientConfig) {
+// LoadURLWithConfig loads a url
+func LoadURLWithConfig(config Config) {
 	tr := &http2.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
 
-	url := config.url
+	url := config.URL
 	resp, err := client.Get(url)
 	if err != nil {
 		log.Fatal(err)
@@ -33,9 +35,4 @@ func loadURLWithConfig(config clientConfig) {
 
 	fmt.Println(string(body))
 	fmt.Println(resp.Header)
-}
-
-func main() {
-	config := clientConfig{url: "https://localhost"}
-	loadURLWithConfig(config)
 }
