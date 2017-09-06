@@ -20,17 +20,21 @@ func handleResponse(w http.ResponseWriter, r *http.Request) {
 }
 
 // StartServer something
-func StartServer(config Config) {
-	var srv http.Server
+func StartServer(config Config) *http.Server {
 	// add ":" in front of port no as Server requires it in that form
-	srv.Addr = ":" + config.Address
+	srv := &http.Server{Addr: ":" + config.Address}
 	// http2.VerboseLogs = true
 
-	http2.ConfigureServer(&srv, nil)
+	http2.ConfigureServer(srv, nil)
 
 	http.HandleFunc("/", handleResponse)
-	err := srv.ListenAndServeTLS(config.Cert, config.Key)
-	if err != nil {
-		panic(err)
-	}
+
+	// create server in new go routine so that we can have gracefull shutdown
+	go func() {
+		if err := srv.ListenAndServeTLS(config.Cert, config.Key); err != nil {
+			println(err.Error())
+		}
+	}()
+
+	return srv
 }
