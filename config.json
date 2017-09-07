@@ -6,6 +6,5 @@
   },
   "client": {
     "URL": "https://localhost:8443"
-  },
-  "test": "test2"
+  }
 }

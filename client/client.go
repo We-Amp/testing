@@ -2,7 +2,6 @@ package client
 
 import (
 	"crypto/tls"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -15,8 +14,8 @@ type Config struct {
 	URL string
 }
 
-// LoadURLWithConfig loads a url
-func LoadURLWithConfig(config Config) {
+// LoadURLWithConfig loads a url specified in config
+func LoadURLWithConfig(config Config) string {
 	tr := &http2.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -33,6 +32,5 @@ func LoadURLWithConfig(config Config) {
 		log.Fatal(err)
 	}
 
-	fmt.Println(string(body))
-	fmt.Println(resp.Header)
+	return string(body)
 }

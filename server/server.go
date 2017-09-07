@@ -15,11 +15,11 @@ type Config struct {
 }
 
 func handleResponse(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("%+v\n", r)
 	fmt.Fprintf(w, "Hello World\n")
 }
 
-// StartServer something
+// StartServer starts a http2 server on port provided in config
+// with certificate and key file locations
 func StartServer(config Config) *http.Server {
 	// add ":" in front of port no as Server requires it in that form
 	srv := &http.Server{Addr: ":" + config.Address}
