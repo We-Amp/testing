@@ -15,6 +15,9 @@ Steps
 * Add certificates in ssl_multicerts.config
   `dest_ip=* ssl_cert_name=$PATH_TO_CODE/http2/certs/localhost.cert ssl_key_name=$PATH_TO_CODE/http2/certs/localhost.key`
 
+* Update remap.config
+  `map https://localhost:443 https://localhost:8443`
+
 * Start ATS
 * Run the tests with go test in http2 folder
   `go test`
