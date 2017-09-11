@@ -11,7 +11,9 @@ func Test(t *testing.T) {
 	g.Describe("Simple Initial test", func() {
 		// Passing Test
 		g.It("Should start server", func() {
-			output := StartTest()
+			filePath := "config.json"
+			config := GetConfig(filePath)
+			output := StartTest(config)
 			g.Assert(output).Equal("Hello World\n")
 		})
 	})

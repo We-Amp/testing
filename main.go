@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"http2/client"
 	"http2/server"
 	"log"
@@ -11,32 +10,38 @@ import (
 	"time"
 )
 
-type configuration struct {
+//Configuration Takes configuration from json file
+type Configuration struct {
 	Server server.Config
 	Client client.Config
 }
 
-// StartTest start the test
-func StartTest() string {
-	file, err := os.Open("config.json")
+// GetConfig from file
+func GetConfig(filePath string) Configuration {
+	file, err := os.Open(filePath)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
+	defer file.Close()
 
 	decoder := json.NewDecoder(file)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	config := configuration{}
+	config := Configuration{}
 	err = decoder.Decode(&config)
 	if err != nil {
-		fmt.Println("error:", err)
+		log.Fatal(err)
 	}
 
+	return config
+}
+
+// StartTest start the test
+func StartTest(config Configuration) string {
 	srv := server.StartServer(config.Server)
 	output := client.LoadURLWithConfig(config.Client)
-
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
@@ -47,6 +52,10 @@ func StartTest() string {
 }
 
 func main() {
-	output := StartTest()
-	println(output)
+	// TODO(piyush): take config filepath as command line param
+	log.SetFlags(log.Lshortfile)
+	filePath := "config.json"
+	config := GetConfig(filePath)
+	output := StartTest(config)
+	log.Println(output)
 }
