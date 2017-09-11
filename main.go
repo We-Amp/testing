@@ -3,17 +3,20 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"http2/client"
 	"http2/server"
 	"log"
 	"os"
+	"os/exec"
 	"time"
 )
 
 //Configuration Takes configuration from json file
 type Configuration struct {
-	Server server.Config
-	Client client.Config
+	TrafficServer string
+	Server        server.Config
+	Client        client.Config
 }
 
 // GetConfig from file
@@ -51,11 +54,59 @@ func StartTest(config Configuration) string {
 	return output
 }
 
+// StartServer used to start the traffic server
+func startServer(atsPath string) {
+	cmd := exec.Command(atsPath, "start")
+	ch := make(chan []byte)
+	go func() {
+		cmdout, err := cmd.Output()
+		if err != nil {
+			fmt.Println("Error: ", err)
+		}
+		ch <- cmdout
+	}()
+
+	output := <-ch
+
+	s := string(output[:])
+
+	log.Printf("Launched server: %s", s)
+}
+
+func stopServer(atsPath string) {
+	cmd := exec.Command(atsPath, "stop")
+	ch := make(chan []byte)
+	go func() {
+		cmdout, err := cmd.Output()
+		if err != nil {
+			fmt.Println("Error: ", err)
+		}
+		ch <- cmdout
+	}()
+
+	output := <-ch
+	s := string(output[:])
+
+	log.Printf("Stopped server: %s", s)
+}
+
 func main() {
 	// TODO(piyush): take config filepath as command line param
 	log.SetFlags(log.Lshortfile)
+
 	filePath := "config.json"
 	config := GetConfig(filePath)
+
+	if config.TrafficServer != "" {
+		startServer(config.TrafficServer)
+	} else {
+		log.Println("ATS path is empty")
+	}
+
 	output := StartTest(config)
 	log.Println(output)
+
+	if config.TrafficServer != "" {
+		stopServer(config.TrafficServer)
+	}
 }

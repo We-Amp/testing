@@ -1,10 +1,11 @@
 {
+  "trafficServer" : "",
   "server": {
     "Address": "8443",
     "Cert": "certs/localhost.cert",
     "Key": "certs/localhost.key"
   },
   "client": {
-    "URL": "https://localhost:8443"
+    "URL": "https://localhost"
   }
 }
