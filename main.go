@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"http2/client"
 	"http2/server"
 	"log"
@@ -11,39 +10,52 @@ import (
 	"time"
 )
 
-type configuration struct {
+//Configuration Takes configuration from json file
+type Configuration struct {
 	Server server.Config
 	Client client.Config
 }
 
-func main() {
-	// servConf := server.Config{Address: ":8443", Cert: "certs/localhost.cert", Key: "certs/localhost.key"}
-	// clientConf := client.Config{URL: "https://localhost:8443"}
-
-	file, err := os.Open("config.json")
+// GetConfig from file
+func GetConfig(filePath string) Configuration {
+	file, err := os.Open(filePath)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
+	defer file.Close()
 
 	decoder := json.NewDecoder(file)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	config := configuration{}
+	config := Configuration{}
 	err = decoder.Decode(&config)
 	if err != nil {
-		fmt.Println("error:", err)
+		log.Fatal(err)
 	}
 
-	fmt.Printf("%#v\n", config.Server)
-	fmt.Printf("%#v\n", config.Client)
-	srv := server.StartServer(config.Server)
-	client.LoadURLWithConfig(config.Client)
+	return config
+}
 
+// StartTest start the test
+func StartTest(config Configuration) string {
+	srv := server.StartServer(config.Server)
+	output := client.LoadURLWithConfig(config.Client)
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
 	// gives out error, but not required to handle it
 	srv.Shutdown(ctx)
+
+	return output
+}
+
+func main() {
+	// TODO(piyush): take config filepath as command line param
+	log.SetFlags(log.Lshortfile)
+	filePath := "config.json"
+	config := GetConfig(filePath)
+	output := StartTest(config)
+	log.Println(output)
 }

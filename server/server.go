@@ -2,6 +2,8 @@ package server
 
 import (
 	"fmt"
+	"log"
+	"net"
 	"net/http"
 
 	"golang.org/x/net/http2"
@@ -15,14 +17,14 @@ type Config struct {
 }
 
 func handleResponse(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("%+v\n", r)
 	fmt.Fprintf(w, "Hello World\n")
 }
 
-// StartServer something
+// StartServer starts a http2 server on port provided in config
+// with certificate and key file locations
 func StartServer(config Config) *http.Server {
 	// add ":" in front of port no as Server requires it in that form
-	srv := &http.Server{Addr: ":" + config.Address}
+	srv := &http.Server{Addr: ":" + config.Address, ConnState: connState}
 	// http2.VerboseLogs = true
 
 	http2.ConfigureServer(srv, nil)
@@ -32,9 +34,13 @@ func StartServer(config Config) *http.Server {
 	// create server in new go routine so that we can have gracefull shutdown
 	go func() {
 		if err := srv.ListenAndServeTLS(config.Cert, config.Key); err != nil {
-			println(err.Error())
+			log.Println(err)
 		}
 	}()
 
 	return srv
+}
+
+func connState(conn net.Conn, state http.ConnState) {
+	log.Println("State is : ", state)
 }
