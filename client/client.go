@@ -47,7 +47,11 @@ func LoadURLWithConfig(config Config) string {
 
 func dialTLS(network, addr string, cfg *tls.Config) (net.Conn, error) {
 	cfg.InsecureSkipVerify = true
-	newconn, err := net.Dial("tcp", "localhost:8443")
+	newconn, err := net.Dial("tcp", addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	log.Println(newconn.LocalAddr())
 	tconn := tls.Client(newconn, cfg)
 	tlsconn = tconn
