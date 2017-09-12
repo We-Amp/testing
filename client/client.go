@@ -16,8 +16,10 @@ type Config struct {
 }
 
 var (
-	newconn *net.Conn
-	tlsconn *tls.Conn
+	// Newconn is pointer to net.Conn interface
+	Newconn *net.Conn
+	// Tlsconn is pointer to tls.Conn struct
+	Tlsconn *tls.Conn
 )
 
 // LoadURLWithConfig loads a url specified in config
@@ -30,9 +32,6 @@ func LoadURLWithConfig(config Config) string {
 
 	url := config.URL
 	resp, err := client.Get(url)
-
-	log.Printf("State is: %#v", tlsconn.ConnectionState())
-	log.Println(tlsconn.RemoteAddr())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,8 +53,8 @@ func dialTLS(network, addr string, cfg *tls.Config) (net.Conn, error) {
 
 	log.Println(newconn.LocalAddr())
 	tconn := tls.Client(newconn, cfg)
-	tlsconn = tconn
-	log.Printf("State is: %#v", tlsconn.ConnectionState())
+	Tlsconn = tconn
+	log.Printf("State is: %#v", Tlsconn.ConnectionState())
 
 	if err != nil {
 		log.Fatal("failed to connect: " + err.Error())

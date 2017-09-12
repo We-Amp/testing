@@ -45,6 +45,7 @@ func GetConfig(filePath string) Configuration {
 func StartTest(config Configuration) string {
 	srv := server.StartServer(config.Server)
 	output := client.LoadURLWithConfig(config.Client)
+	checkConnState()
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
@@ -88,6 +89,11 @@ func stopServer(atsPath string) {
 	s := string(output[:])
 
 	log.Printf("Stopped server: %s", s)
+}
+
+func checkConnState() {
+	log.Printf("State is: %#v", client.Tlsconn.ConnectionState())
+	log.Println(client.Tlsconn.RemoteAddr())
 }
 
 func main() {
