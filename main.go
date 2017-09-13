@@ -58,7 +58,7 @@ func StartTest(config Configuration) string {
 
 // StartServer used to start the traffic server
 func startServer(atsPath string) {
-	cmd := exec.Command(atsPath, "start")
+	cmd := exec.Command("sudo", atsPath, "start")
 	ch := make(chan []byte)
 	go func() {
 		cmdout, err := cmd.Output()
@@ -76,7 +76,7 @@ func startServer(atsPath string) {
 }
 
 func stopServer(atsPath string) {
-	cmd := exec.Command(atsPath, "stop")
+	cmd := exec.Command("sudo", atsPath, "stop")
 	ch := make(chan []byte)
 	go func() {
 		cmdout, err := cmd.Output()
