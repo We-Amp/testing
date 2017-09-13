@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"http2/client"
-	"http2/server"
 	"log"
 	"os"
 	"os/exec"
 	"time"
+
+	"testing/client"
+	"testing/server"
 )
 
 //Configuration Takes configuration from json file
@@ -92,7 +93,6 @@ func stopServer(atsPath string) {
 }
 
 func checkConnState() {
-	log.Printf("State is: %#v", client.Tlsconn.ConnectionState())
 	log.Println(client.Tlsconn.RemoteAddr())
 }
 

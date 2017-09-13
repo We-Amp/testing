@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 
 	"golang.org/x/net/http2"
 )
@@ -28,10 +29,43 @@ func LoadURLWithConfig(config Config) string {
 		DialTLS:         dialTLS,
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	client := &http.Client{Transport: tr}
 
 	url := config.URL
-	resp, err := client.Get(url)
+
+	req, _ := http.NewRequest("GET", url, nil)
+	trace := &httptrace.ClientTrace{
+		GetConn: func(hostPort string) { log.Println("GetConn1") },
+
+		GotConn: func(httptrace.GotConnInfo) { log.Println("GetConn2") },
+
+		PutIdleConn: func(err error) { log.Println("PutIdleConn") },
+
+		GotFirstResponseByte: func() { log.Println("GotFirstResponseByte") },
+
+		Got100Continue: func() { log.Println("Got100Continue") },
+
+		DNSStart: func(httptrace.DNSStartInfo) { log.Println("DNSStart") },
+
+		DNSDone: func(httptrace.DNSDoneInfo) { log.Println("DNSDone") },
+
+		ConnectStart: func(network, addr string) { log.Println("ConnectStart") },
+
+		ConnectDone: func(network, addr string, err error) { log.Println("ConnectDone") },
+
+		TLSHandshakeStart: func() { log.Println("TLSHandshakeStart") },
+
+		TLSHandshakeDone: func(tls.ConnectionState, error) { log.Println("TLSHandshakeDone") },
+
+		WroteHeaders: func() { log.Println("WroteHeaders") },
+
+		Wait100Continue: func() { log.Println("Wait100Continue") },
+
+		WroteRequest: func(httptrace.WroteRequestInfo) { log.Println("WroteRequest") },
+	}
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+	client := &http.Client{Transport: tr}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,7 +88,6 @@ func dialTLS(network, addr string, cfg *tls.Config) (net.Conn, error) {
 	log.Println(newconn.LocalAddr())
 	tconn := tls.Client(newconn, cfg)
 	Tlsconn = tconn
-	log.Printf("State is: %#v", Tlsconn.ConnectionState())
 
 	if err != nil {
 		log.Fatal("failed to connect: " + err.Error())
