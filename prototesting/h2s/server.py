@@ -35,8 +35,8 @@ def get_http2_ssl_context():
     ctx.set_ciphers("ECDHE-RSA-AES256-GCM-SHA384")
     # print(ctx.get_ciphers())
 
-    ctx.load_cert_chain(certfile="certs/server.crt",
-                        keyfile="certs/server.key")
+    ctx.load_cert_chain(certfile="../certs/server.crt",
+                        keyfile="../certs/server.key")
 
     # We want to negotiate using NPN and ALPN. ALPN is mandatory, but NPN may
     # be absent, so allow that. This setup allows for negotiation of HTTP/1.1.
@@ -115,30 +115,33 @@ def handle(tcpsock, httpconn):
         if data_to_send:
             tcpsock.sendall(data_to_send)
 
+def main():
+    sock = socket.socket()
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind(('0.0.0.0', 8080))
+    sock.listen(5)
 
-sock = socket.socket()
-sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-sock.bind(('0.0.0.0', 8080))
-sock.listen(5)
+    print("TCP socket:" + str(sock))
 
-print("TCP socket:" + str(sock))
+    while True:
+        print("Waiting for connection")
 
-while True:
-    print("Waiting for connection")
+        tcpconn, address = sock.accept()
+        print("TCP connection:" + str(tcpconn))
 
-    tcpconn, address = sock.accept()
-    print("TCP connection:" + str(tcpconn))
+        context = get_http2_ssl_context()
 
-    context = get_http2_ssl_context()
+        tls_connection = negotiate_tls(tcpconn, context)
+        print("TLS Connection: " + str(tls_connection))
 
-    tls_connection = negotiate_tls(tcpconn, context)
-    print("TLS Connection: " + str(tls_connection))
+        config = h2.config.H2Configuration(client_side=False)
+        conn = h2.connection.H2Connection(config=config)
+        conn.initiate_connection()
+        tls_connection.sendall(conn.data_to_send())
 
-    config = h2.config.H2Configuration(client_side=False)
-    conn = h2.connection.H2Connection(config=config)
-    conn.initiate_connection()
-    tls_connection.sendall(conn.data_to_send())
+        print("HTTP2 connection: " + str(conn))
 
-    print("HTTP2 connection: " + str(conn))
+        handle(tls_connection, conn)
 
-    handle(tls_connection, conn)
+if __name__ == "__main__":
+    main()

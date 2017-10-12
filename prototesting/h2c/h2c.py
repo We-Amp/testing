@@ -61,6 +61,10 @@ def get_http2_ssl_context():
     except NotImplementedError:
         pass
 
+    # Disable checking of certificates on client side
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
     return ctx
 
 
@@ -147,4 +151,6 @@ def main():
             if isinstance(event, h2.events.ResponseReceived):
                 print(event.headers)
 
-main()
+
+if __name__ == "__main__":
+    main()
