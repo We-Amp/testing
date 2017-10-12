@@ -62,15 +62,8 @@ def parse(json_text):
         if "action" in cmd:
             action = cmd["action"].split(".")
             mod = getattr(test_obj, action[0]).mod
+            print(dir(mod))
             getattr(mod,action[1])()
 
 if __name__ == "__main__":
-    # adding path manually here, need to do it at better place
-    sys.path.append('./prototesting/h2c')
-
-    print(sys.path)
-
-    parse("""[
-                {"create":"h2c","name":"h2client"},
-                {"action":"h2client.main"}
-            ]""")
+    pass

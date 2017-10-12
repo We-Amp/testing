@@ -35,8 +35,8 @@ def get_http2_ssl_context():
     ctx.set_ciphers("ECDHE-RSA-AES256-GCM-SHA384")
     # print(ctx.get_ciphers())
 
-    ctx.load_cert_chain(certfile="../certs/server.crt",
-                        keyfile="../certs/server.key")
+    ctx.load_cert_chain(certfile="certs/server.crt",
+                        keyfile="certs/server.key")
 
     # We want to negotiate using NPN and ALPN. ALPN is mandatory, but NPN may
     # be absent, so allow that. This setup allows for negotiation of HTTP/1.1.
@@ -114,6 +114,7 @@ def handle(tcpsock, httpconn):
         data_to_send = httpconn.data_to_send()
         if data_to_send:
             tcpsock.sendall(data_to_send)
+
 
 def main():
     sock = socket.socket()
