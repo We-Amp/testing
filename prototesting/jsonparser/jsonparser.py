@@ -33,23 +33,18 @@ import os
 
 class Module:
     def __init__(self, modName, name):
-        # actual module
         self.create_module(modName)
-        self.mod = None
-        # module with alias name
+
         if name:
             self.set_name(name)
         else:
-            self.mod = self._mod
+            self.set_name(modName)
 
     def set_name(self, name):
-        if self._mod:
-            self.mod = {name: self._mod}[name]
+        self.name = name
 
     def create_module(self, modName):
-        self._mod = importlib.import_module(modName)
-        print(self._mod)
-
+        self.mod = importlib.import_module(modName)
 
 class TestObject:
     def create_module(self, modName, name):
@@ -65,13 +60,12 @@ def parse(json_text):
             test_obj.create_module(cmd["create"], cmd["name"])
         #if "config" in cmd:
         if "action" in cmd:
-            action = cmd["action"]
-            mod = getattr(test_obj, action.split(".")[0]).mod
-            getattr(mod,action.split(".")[1])()
+            action = cmd["action"].split(".")
+            mod = getattr(test_obj, action[0]).mod
+            getattr(mod,action[1])()
 
 if __name__ == "__main__":
     # adding path manually here, need to do it at better place
-
     sys.path.append('./prototesting/h2c')
 
     print(sys.path)
