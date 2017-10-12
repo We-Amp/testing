@@ -29,11 +29,13 @@ TEST_JSON = """[
 import json
 import importlib
 import sys
+import os
 
 class Module:
     def __init__(self, modName, name):
         # actual module
         self.create_module(modName)
+        self.mod = None
         # module with alias name
         if name:
             self.set_name(name)
@@ -42,10 +44,11 @@ class Module:
 
     def set_name(self, name):
         if self._mod:
-            self.mod = {name: self.mod}[name]
+            self.mod = {name: self._mod}[name]
 
     def create_module(self, modName):
         self._mod = importlib.import_module(modName)
+        print(self._mod)
 
 
 class TestObject:
@@ -63,16 +66,17 @@ def parse(json_text):
         #if "config" in cmd:
         if "action" in cmd:
             action = cmd["action"]
-            mod = getattr(test_obj, action.split()[0]).mod
-            mod.mod[action.split()[1]]()
+            mod = getattr(test_obj, action.split(".")[0]).mod
+            getattr(mod,action.split(".")[1])()
 
 if __name__ == "__main__":
     # adding path manually here, need to do it at better place
 
-    # sys.path.append('../') 
+    sys.path.append('./prototesting/h2c')
 
-    # parse("""[
-    #             {"create":"h2c","name":"h2client"},
-    #             {"action":"h2client.main"}
-    #         ]""")
-    pass
+    print(sys.path)
+
+    parse("""[
+                {"create":"h2c","name":"h2client"},
+                {"action":"h2client.main"}
+            ]""")
