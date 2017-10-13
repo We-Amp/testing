@@ -1,3 +1,5 @@
+#!/usr/bin/python -tt
+
 """ Entry point
 """
 from jsonparser import jsonparser

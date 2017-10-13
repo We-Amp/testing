@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
+    http2 server
 """
-import json
 import socket
 import ssl
+import threading
 
 import h2.connection
 import h2.events
@@ -96,6 +97,7 @@ def send_response(conn, event):
         end_stream=True
     )
 
+
 def handle(tcpsock, httpconn):
     """handle something something"""
     while True:
@@ -117,6 +119,11 @@ def handle(tcpsock, httpconn):
 
 
 def main():
+    t = threading.Thread(target=create_socket)
+    t.start()
+
+
+def create_socket():
     sock = socket.socket()
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(('0.0.0.0', 8080))
@@ -143,6 +150,7 @@ def main():
         print("HTTP2 connection: " + str(conn))
 
         handle(tls_connection, conn)
+
 
 if __name__ == "__main__":
     main()

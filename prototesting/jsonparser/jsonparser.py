@@ -1,69 +1,59 @@
+#!/usr/bin/python -tt
+
 """
     JSON Parser which creates the test objects and executes each step
 """
-
-#!/usr/bin/python -tt
-
-TEST_JSON = """[
-  {"create":"ats_server","name":"ats","config":""},
-  {"create":"http2server","name":"h2s","listen":8080},
-  {"create":"http2client","name":"h2c"},
-  {
-    "parallel":[
-        [
-            {"action":"h2c.request", "url":"https://localhost:8080/test1.html","name":"request1"},
-            {"expect":"request1.receivecontent","expected":"<headers>","timeout":100},
-            {"expect":"request1.nocontent","timeout":900},
-            {"expect":"request1.receivecontent","expected":"<content>","timeout":100}
-        ],
-        [
-            {"expect":"h2s.request", "request":"/test1.htm","name":"request1"},
-            {"action":"request1.sendcontent","value":"<headers>"},
-            {"action":"sleep","timeout":1000},
-            {"action":"request1.sendcontent","value":"<content>"}
-        ]
-    ]
-  }
-]"""
-
 import json
 import importlib
-import sys
-import os
+
 
 class Module:
-    def __init__(self, modName, name):
-        self.create_module(modName)
+    """
+        Object corresponds to create statement in json
+    """
+
+    def __init__(self, mod_name, name):
+        self.create_module(mod_name)
 
         if name:
             self.set_name(name)
         else:
-            self.set_name(modName)
+            self.set_name(mod_name)
 
     def set_name(self, name):
+        """ name of the module specified by "name" key"""
         self.name = name
 
-    def create_module(self, modName):
-        self.mod = importlib.import_module(modName)
+    def create_module(self, mod_name):
+        """ imports module spcified in "create" key"""
+        self.mod = importlib.import_module(mod_name)
+
 
 class TestObject:
-    def create_module(self, modName, name):
-        mod = Module(modName, name)
+    """ Container object which holds all modules imported using 'create' key """
+
+    def create_module(self, mod_name, name):
+        """ Imports module named 'mod_name' and adds a attibute to Test object with 'name'"""
+        mod = Module(mod_name, name)
         setattr(self, name, mod)
 
+
 def parse(json_text):
+    """Parse test cases defined in json"""
     test_obj = TestObject()
+
     json_data = json.loads(json_text)
     for cmd in json_data:
         print(cmd)
         if "create" in cmd:
             test_obj.create_module(cmd["create"], cmd["name"])
-        #if "config" in cmd:
+        # if "config" in cmd:
         if "action" in cmd:
             action = cmd["action"].split(".")
             mod = getattr(test_obj, action[0]).mod
             print(dir(mod))
-            getattr(mod,action[1])()
+            getattr(mod, action[1])()
+
 
 if __name__ == "__main__":
     pass
