@@ -146,15 +146,15 @@ class Server:
         """handle something something"""
         while self._should_serve:
             data = tcpsock.recv(65535)
-            print("\nTLS Data:")
-            print(data)
+            # print("\nTLS Data:")
+            # print(data)
             if not data:
                 break
             events = httpconn.receive_data(data)
             for event in events:
-                print("\nEvent fired: " + str(event))
+                # print("\nEvent fired: " + str(event))
                 if isinstance(event, h2.events.RequestReceived):
-                    print(event.headers)
+                    # print(event.headers)
                     self.send_response(httpconn, event)
 
             data_to_send = httpconn.data_to_send()

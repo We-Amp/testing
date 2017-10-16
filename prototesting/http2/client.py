@@ -126,7 +126,7 @@ class Client():
         # main loop now.
 
         stream_id = self.http2_connection.get_next_available_stream_id()
-        print("stream_id: " + str(stream_id))
+        # print("stream_id: " + str(stream_id))
 
         self.http2_connection.send_headers(
             stream_id=stream_id,
@@ -148,12 +148,13 @@ class Client():
 
         return self
 
-    def receivecontent(self, content, unused_timeout):
-        print("waiting for server to send" + str(content))
+    def receivecontent(self, expected_content, unused_timeout, test_output):
+        print("waiting for server to send" + str(expected_content))
+        expectation = test_output
 
         while True:
             data = self.tls_connection.recv(65535)
-            print("\nReceived server raw data : " + str(data))
+            # print("\nReceived server raw data : " + str(data))
             if not data:
                 print("no response from server")
             events = self.http2_connection.receive_data(data)
@@ -164,7 +165,11 @@ class Client():
                     if event.stream_ended:
                         return
                 if isinstance(event, h2.events.ResponseReceived):
-                    print(event.headers)
+                    for header in event.headers:
+                        if expected_content in header[1]:
+                            print("expectation", expectation, event.headers)
+                            expectation.update({"status":"passed"})
+                            return expectation
 
 
 def create():
@@ -173,7 +178,7 @@ def create():
 
 def main():
     client = Client()
-    client.request("http://localhost:8080");
+    client.request("http://localhost:8080")
 
 
 if __name__ == "__main__":

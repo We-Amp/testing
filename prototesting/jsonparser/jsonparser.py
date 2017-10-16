@@ -33,6 +33,11 @@ class Module:
 class TestUnit:
     """ Container object which holds all modules imported using 'create' key """
 
+    def __init__(self):
+        self.name = None
+        self.description = None
+        self.expectations = []
+
     def create_module(self, mod_name, name):
         """ Imports module named 'mod_name' and adds a attibute to Test object with 'name'"""
         mod = Module(mod_name, name)
@@ -46,9 +51,16 @@ def parse(json_text):
     json_data = json.loads(json_text)
     for cmd in json_data:
         print(cmd)
+        if "TestName" in cmd:
+            test_obj.name = cmd["TestName"]
+            test_obj.description = cmd["Description"]
+
         if "create" in cmd:
             test_obj.create_module(cmd["create"], cmd["name"])
-        # if "config" in cmd:
+            if "config" in cmd:
+                mod = getattr(test_obj, cmd["name"])
+                getattr(mod, "config")(cmd["config"])
+
         if "action" in cmd:
             action = None
             action_response = None
@@ -70,12 +82,25 @@ def parse(json_text):
 
         if "expect" in cmd:
             args = []
+            output = {"Description": cmd["Description"]}
             expect = cmd["expect"].split(".")
             for action_item in cmd:
-                if action_item != "expect":
+                if action_item != "expect" and action_item != "Description":
                     args.append(cmd[action_item])
+            args.append(output)
             mod = getattr(test_obj, expect[0])
-            getattr(mod, expect[1])(*args)
+            expectation = getattr(mod, expect[1])(*args)
+            test_obj.expectations.append(expectation)
+    
+    print("="*25)
+    print("Test Ouptut")
+    print("="*25)
+    print("Test: ", test_obj.name)
+    print("Test Description:", test_obj.description)
+    print("Expectations")
+    for expectation in test_obj.expectations:
+        for expect, output in expectation.items():
+            print(expect + ": " + output)
 
 
 if __name__ == "__main__":
