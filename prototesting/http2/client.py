@@ -21,8 +21,10 @@ import h2.connection
 """
     Client class to send client request.
 """
+
+
 class Client():
-    
+
     def __init__(self):
         self.context = None
         self.connection = None
@@ -34,7 +36,6 @@ class Client():
         This function establishes a client-side TCP connection.
         """
         return socket.create_connection((url, port))
-
 
     def get_http2_ssl_context(self):
         """
@@ -76,7 +77,6 @@ class Client():
 
         return ctx
 
-
     def negotiate_tls(self, tcp_conn, context):
         """
         Given an established TCP connection and a HTTP/2-appropriate TLS context,
@@ -107,9 +107,10 @@ class Client():
 
         parsed_url = urlparse(url)
         url_location = parsed_url.netloc.split(":")
-        
+
         # Step 2: Create a TCP connection.
-        self.connection = self.establish_tcp_connection(url_location[0], url_location[1])
+        self.connection = self.establish_tcp_connection(
+            url_location[0], url_location[1])
 
         # Step 3: Wrap the connection in TLS and validate that we negotiated HTTP/2
         self.tls_connection = self.negotiate_tls(self.connection, self.context)
@@ -145,7 +146,9 @@ class Client():
         if data_to_send:
             self.tls_connection.sendall(data_to_send)
 
-    def receivecontent(self, content):
+        return self
+
+    def receivecontent(self, content, unused_timeout):
         print("waiting for server to send" + str(content))
 
         while True:
@@ -167,9 +170,11 @@ class Client():
 def create():
     return Client()
 
+
 def main():
     client = Client()
     client.request("http://localhost:8080");
+
 
 if __name__ == "__main__":
     main()

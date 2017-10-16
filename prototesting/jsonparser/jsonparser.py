@@ -64,7 +64,10 @@ def parse(json_text):
             mod = getattr(test_obj, action[0])
             print(dir(mod))
             response = getattr(mod, action[1])(*args)
-            setattr(test_obj, action_response, response)
+
+            if action_response:
+                setattr(test_obj, action_response, response)
+
         if "expect" in cmd:
             args = []
             expect = cmd["expect"].split(".")
@@ -72,7 +75,7 @@ def parse(json_text):
                 if action_item != "expect":
                     args.append(cmd[action_item])
             mod = getattr(test_obj, expect[0])
-            getattr(mod, action[1])(*args)
+            getattr(mod, expect[1])(*args)
 
 
 if __name__ == "__main__":

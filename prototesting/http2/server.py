@@ -17,12 +17,15 @@ class Server:
         self.sock = None
         self._should_serve = True
 
-        if config is None:
-            self.port = 8080
-            self.address = "0.0.0.0"
-        else:
-            self.port = config.port
-            self.address = config.address
+        self.port = 8080
+        self.address = "0.0.0.0"
+
+    def config(self, config):
+        """
+        Configure the port and address of server
+        """
+        self.port = config.port
+        self.address = config.address
 
     def create_socket(self):
         """Create a socket which will be listening for incoming connection from client"""
@@ -163,21 +166,27 @@ class Server:
         self._should_serve = False
         self.sock.close()
 
-
-SERVER = None
-
-
-def main(config=None):
-    """Entrypoint for starting the server"""
-    global SERVER
-    SERVER = Server(config)
-    thread = threading.Thread(target=SERVER.create_socket)
-    thread.start()
+    def start(self, config=None):
+        """Entrypoint for starting the server"""
+        if config:
+            self.config(config)
+        thread = threading.Thread(target=self.create_socket)
+        thread.start()
 
 
-def kill():
-    """Shutdown the server"""
-    SERVER.kill()
+def create():
+    """
+    Create() -> server
+    Returns the Server object
+    """
+    server = Server()
+    return server
+
+
+def main():
+    """Standalone server instance"""
+    server = Server()
+    server.start()
 
 
 if __name__ == "__main__":
