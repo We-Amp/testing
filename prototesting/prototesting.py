@@ -14,7 +14,8 @@ def main():
             {"create":"http2.server","name":"h2s"},
             {"action":"h2s.main"},
             {"create":"http2.client","name":"h2c"},
-            {"action":"h2c.main"}
+            {"action":"h2c.main"},
+            {"action":"h2s.kill"}
         ]""")
 
 
