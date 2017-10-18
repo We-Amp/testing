@@ -3,8 +3,9 @@
 """
     JSON Parser which creates the test objects and executes each step
 """
-import json
 import importlib
+import json
+import logging
 
 
 class Module:
@@ -46,11 +47,12 @@ class TestUnit:
 
 def parse(json_text):
     """Parse test cases defined in json"""
+    logger = logging.getLogger(__name__)
     test_obj = TestUnit()
 
     json_data = json.loads(json_text)
     for cmd in json_data:
-        # print(cmd)
+        logger.debug(cmd)
         if "TestName" in cmd:
             test_obj.name = cmd["TestName"]
             test_obj.description = cmd["Description"]
@@ -74,7 +76,7 @@ def parse(json_text):
                     args.append(cmd[action_item])
 
             mod = getattr(test_obj, action[0])
-            print(dir(mod))
+            logger.debug(dir(mod))
             response = getattr(mod, action[1])(*args)
 
             if action_response:

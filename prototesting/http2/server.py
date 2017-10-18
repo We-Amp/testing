@@ -2,6 +2,7 @@
 """
     http2 server
 """
+import logging
 import socket
 import ssl
 import threading
@@ -22,6 +23,7 @@ class Server:
         self.events = []
         self.httpconn = None
         self.tcpsock = None
+        self.logger = logging.getLogger(__name__)
 
     def config(self, config):
         """
@@ -37,25 +39,25 @@ class Server:
         self.sock.bind((self.address, self.port))
         self.sock.listen(5)
 
-        # print("TCP socket:" + str(self.sock))
+        self.logger.debug("TCP socket:" + str(self.sock))
 
         while self._should_serve:
-            # print("Waiting for connection")
+            self.logger.debug("Waiting for connection")
 
             tcpconn, unused_address = self.sock.accept()
-            # print("TCP connection:" + str(tcpconn))
+            self.logger.debug("TCP connection:" + str(tcpconn))
 
             context = self.get_http2_ssl_context()
 
             self.tcpsock = self.negotiate_tls(tcpconn, context)
-            # print("TLS Connection: " + str(tls_connection))
+            self.logger.debug("TLS Connection: " + str(self.tcpsock))
 
             config = h2.config.H2Configuration(client_side=False)
             self.httpconn = h2.connection.H2Connection(config=config)
             self.httpconn.initiate_connection()
             self.tcpsock.sendall(self.httpconn.data_to_send())
 
-            # print("HTTP2 connection: " + str(conn))
+            self.logger.debug("HTTP2 connection: " + str(self.httpconn))
 
             self.handle()
 
@@ -83,7 +85,7 @@ class Server:
         # blacklist defined in this section allows only the AES GCM and ChaCha20
         # cipher suites with ephemeral key negotiation.
         ctx.set_ciphers("ECDHE-RSA-AES256-GCM-SHA384")
-        # print(ctx.get_ciphers())
+        self.logger.debug(ctx.get_ciphers())
 
         ctx.load_cert_chain(certfile="certs/server.crt",
                             keyfile="certs/server.key")
@@ -123,12 +125,12 @@ class Server:
 
     def sendresponseheaders(self, unused_headers=None):
         """Send response headers to client"""
-        print("Inside sendresponse$$$$$$$$$$$$$$")
+        self.logger.info("Inside sendresponse$$$$$$$$$$$$$$")
         stream_id = None
         for event in self.events:
-            print("\nServer Event fired: ", str(event))
+            self.logger.info("\nServer Event fired: ", str(event))
             if isinstance(event, h2.events.RequestReceived):
-                print(event.headers)
+                self.logger.info(event.headers)
                 stream_id = event.stream_id
         # response_data = json.dumps(dict(event.headers)).encode('utf-8')
 
@@ -149,9 +151,9 @@ class Server:
         """Send response body to client"""
         stream_id = None
         for event in self.events:
-            print("\nServer Event fired: ", str(event))
+            self.logger.info("\nServer Event fired: ", str(event))
             if isinstance(event, h2.events.RequestReceived):
-                print(event.headers)
+                self.logger.info(event.headers)
                 stream_id = event.stream_id
         # response_data = json.dumps(dict(event.headers)).encode('utf-8')
 
@@ -169,15 +171,15 @@ class Server:
         """handle something something"""
         while self._should_serve:
             data = self.tcpsock.recv(65535)
-            # print("\nTLS Data:")
-            # print(data)
+            self.logger.debug("\nTLS Data:")
+            self.logger.debug(data)
             if not data:
                 break
             self.events = self.httpconn.receive_data(data)
             # for event in events:
-            #     print("\nServer Event fired: ", str(event))
+            #     self.logger.info("\nServer Event fired: ", str(event))
             #     if isinstance(event, h2.events.RequestReceived):
-            # print(event.headers)
+            # self.logger.debug(event.headers)
             # self.sendresponseheaders(httpconn, event)
             # self.sendresponsebody(httpconn, event)
 

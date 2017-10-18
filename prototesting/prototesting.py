@@ -2,7 +2,12 @@
 
 """ Entry point
 """
+import logging
+
 from jsonparser import jsonparser
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s\n')
 
 
 def main():
