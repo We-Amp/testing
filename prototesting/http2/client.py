@@ -149,7 +149,7 @@ class Client():
         return self
 
     def receivecontent(self, expected_content, unused_timeout, test_output):
-        print("waiting for server to send" + str(expected_content))
+        # print("waiting for server to send " + str(expected_content))
         expectation = test_output
 
         while True:
@@ -159,7 +159,7 @@ class Client():
                 print("no response from server")
             events = self.http2_connection.receive_data(data)
             for event in events:
-                print("Event fired: " + str(event))
+                print("\nCLient Event fired: " + str(event))
                 if isinstance(event, h2.events.DataReceived):
                     print(event.data)
                     if event.stream_ended:
@@ -167,16 +167,21 @@ class Client():
                 if isinstance(event, h2.events.ResponseReceived):
                     for header in event.headers:
                         if expected_content in header[1]:
-                            print("expectation", expectation, event.headers)
+                            # print("expectation", expectation, event.headers)
                             expectation.update({"status":"passed"})
                             return expectation
 
 
 def create():
+    """
+    Create() => client
+    Returns the Client object
+    """
     return Client()
 
 
 def main():
+    """Standalone client instance"""
     client = Client()
     client.request("http://localhost:8080")
 

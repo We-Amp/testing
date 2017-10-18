@@ -19,6 +19,9 @@ class Server:
 
         self.port = 8080
         self.address = "0.0.0.0"
+        self.events = []
+        self.httpconn = None
+        self.tcpsock = None
 
     def config(self, config):
         """
@@ -34,27 +37,27 @@ class Server:
         self.sock.bind((self.address, self.port))
         self.sock.listen(5)
 
-        print("TCP socket:" + str(self.sock))
+        # print("TCP socket:" + str(self.sock))
 
         while self._should_serve:
-            print("Waiting for connection")
+            # print("Waiting for connection")
 
             tcpconn, unused_address = self.sock.accept()
-            print("TCP connection:" + str(tcpconn))
+            # print("TCP connection:" + str(tcpconn))
 
             context = self.get_http2_ssl_context()
 
-            tls_connection = self.negotiate_tls(tcpconn, context)
-            print("TLS Connection: " + str(tls_connection))
+            self.tcpsock = self.negotiate_tls(tcpconn, context)
+            # print("TLS Connection: " + str(tls_connection))
 
             config = h2.config.H2Configuration(client_side=False)
-            conn = h2.connection.H2Connection(config=config)
-            conn.initiate_connection()
-            tls_connection.sendall(conn.data_to_send())
+            self.httpconn = h2.connection.H2Connection(config=config)
+            self.httpconn.initiate_connection()
+            self.tcpsock.sendall(self.httpconn.data_to_send())
 
-            print("HTTP2 connection: " + str(conn))
+            # print("HTTP2 connection: " + str(conn))
 
-            self.handle(tls_connection, conn)
+            self.handle()
 
     def get_http2_ssl_context(self):
         """
@@ -118,12 +121,18 @@ class Server:
 
         return tls_conn
 
-    def send_response(self, conn, event):
-        """Send response to client"""
-        stream_id = event.stream_id
+    def sendresponseheaders(self, unused_headers=None):
+        """Send response headers to client"""
+        print("Inside sendresponse$$$$$$$$$$$$$$")
+        stream_id = None
+        for event in self.events:
+            print("\nServer Event fired: ", str(event))
+            if isinstance(event, h2.events.RequestReceived):
+                print(event.headers)
+                stream_id = event.stream_id
         # response_data = json.dumps(dict(event.headers)).encode('utf-8')
 
-        conn.send_headers(
+        self.httpconn.send_headers(
             stream_id=stream_id,
             headers=[
                 (':status', '200'),
@@ -131,35 +140,50 @@ class Server:
                 ('content-type', 'application/json'),
             ],
         )
-        conn.send_data(
+
+        data_to_send = self.httpconn.data_to_send()
+        if data_to_send:
+            self.tcpsock.sendall(data_to_send)
+
+    def sendresponsebody(self, data="Hello World", end_stream=True):
+        """Send response body to client"""
+        stream_id = None
+        for event in self.events:
+            print("\nServer Event fired: ", str(event))
+            if isinstance(event, h2.events.RequestReceived):
+                print(event.headers)
+                stream_id = event.stream_id
+        # response_data = json.dumps(dict(event.headers)).encode('utf-8')
+
+        self.httpconn.send_data(
             stream_id=stream_id,
-            data=b"this is server",
-            end_stream=False
-        )
-        conn.send_data(
-            stream_id=stream_id,
-            data=b"this is server second data",
-            end_stream=True
+            data=b"{data}",
+            end_stream=end_stream
         )
 
-    def handle(self, tcpsock, httpconn):
+        data_to_send = self.httpconn.data_to_send()
+        if data_to_send:
+            self.tcpsock.sendall(data_to_send)
+
+    def handle(self):
         """handle something something"""
         while self._should_serve:
-            data = tcpsock.recv(65535)
+            data = self.tcpsock.recv(65535)
             # print("\nTLS Data:")
             # print(data)
             if not data:
                 break
-            events = httpconn.receive_data(data)
-            for event in events:
-                # print("\nEvent fired: " + str(event))
-                if isinstance(event, h2.events.RequestReceived):
-                    # print(event.headers)
-                    self.send_response(httpconn, event)
+            self.events = self.httpconn.receive_data(data)
+            # for event in events:
+            #     print("\nServer Event fired: ", str(event))
+            #     if isinstance(event, h2.events.RequestReceived):
+            # print(event.headers)
+            # self.sendresponseheaders(httpconn, event)
+            # self.sendresponsebody(httpconn, event)
 
-            data_to_send = httpconn.data_to_send()
+            data_to_send = self.httpconn.data_to_send()
             if data_to_send:
-                tcpsock.sendall(data_to_send)
+                self.tcpsock.sendall(data_to_send)
 
     def kill(self):
         """Close the serving socket"""
@@ -176,7 +200,7 @@ class Server:
 
 def create():
     """
-    Create() -> server
+    Create() => server
     Returns the Server object
     """
     server = Server()

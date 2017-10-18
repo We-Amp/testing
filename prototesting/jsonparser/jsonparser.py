@@ -50,7 +50,7 @@ def parse(json_text):
 
     json_data = json.loads(json_text)
     for cmd in json_data:
-        print(cmd)
+        # print(cmd)
         if "TestName" in cmd:
             test_obj.name = cmd["TestName"]
             test_obj.description = cmd["Description"]
@@ -91,16 +91,19 @@ def parse(json_text):
             mod = getattr(test_obj, expect[0])
             expectation = getattr(mod, expect[1])(*args)
             test_obj.expectations.append(expectation)
-    
+
     print("="*25)
     print("Test Ouptut")
     print("="*25)
     print("Test: ", test_obj.name)
     print("Test Description:", test_obj.description)
-    print("Expectations")
+    print("Expectations:")
     for expectation in test_obj.expectations:
-        for expect, output in expectation.items():
-            print(expect + ": " + output)
+        if expectation:
+            for expect, output in expectation.items():
+                print("\t" + expect + ": " + output)
+        else:
+            print("Something went wrong")
 
 
 if __name__ == "__main__":
