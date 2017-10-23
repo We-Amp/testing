@@ -4,6 +4,8 @@
 """
 import logging
 
+from os import listdir
+from os.path import dirname, isfile, join, realpath
 from jsonparser import jsonparser
 
 logging.basicConfig(level=logging.INFO,
@@ -20,18 +22,16 @@ def main():
     # 3. Proper error handling
     # 4. Enable disable printing of data
 
-    jsonparser.parse(
-        """[
-            {"TestName":"Client - Server", "Description": "This test creates an client and server"},
-            {"create":"http2.server","name":"h2s"},
-            {"action":"h2s.start"},
-            {"create":"http2.client","name":"h2c"},
-            {"action":"h2c.request", "url":"https://localhost:8080/test1.html", "name": "request1"},
-            {"expect":"request1.receivecontent","expected":"200","timeout":100, "Description": "Received Headers"},
-            {"action":"h2s.sendresponseheaders", "name": "responseHeader1"},
-            {"action":"h2s.sendresponsebody", "data": "This is server", "name": "responseBody1"},
-            {"action":"h2s.kill"}
-        ]""")
+    testfilespath = join(dirname(realpath(__file__)), "../jsontests")
+
+    testfiles = [join(testfilespath, f) for f in listdir(
+        testfilespath) if isfile(join(testfilespath, f))]
+
+    for file in testfiles:
+        if file.lower().endswith('.json'):
+            with open(file) as f:
+                fdata = f.read()
+                jsonparser.parse(fdata)
 
 
 if __name__ == "__main__":
