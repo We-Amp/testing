@@ -28,12 +28,12 @@ class Client():
     """
         This Client provides http2 client functionality.
     """
+
     def __init__(self):
         self.context = None
         self.connection = None
         self.tls_connection = None
         self.http2_connection = None
-        self.logger = logging.getLogger(__name__)
 
     def establish_tcp_connection(self, url, port):
         """
@@ -130,7 +130,7 @@ class Client():
         # main loop now.
 
         stream_id = self.http2_connection.get_next_available_stream_id()
-        self.logger.debug("stream_id: " + str(stream_id))
+        logging.debug("stream_id: " + str(stream_id))
 
         self.http2_connection.send_headers(
             stream_id=stream_id,
@@ -153,26 +153,27 @@ class Client():
         return self
 
     def receivecontent(self, expected_content, unused_timeout, test_output):
-        self.logger.debug("waiting for server to send " + str(expected_content))
+        logging.debug("waiting for server to send " + str(expected_content))
         expectation = test_output
 
         while True:
             data = self.tls_connection.recv(65535)
-            self.logger.debug("\nReceived server raw data : " + str(data))
+            logging.debug("\nReceived server raw data : " + str(data))
             if not data:
-                self.logger.info("no response from server")
+                logging.info("no response from server")
             events = self.http2_connection.receive_data(data)
             for event in events:
-                self.logger.info("CLient Event fired: " + str(event))
+                logging.info("CLient Event fired: " + str(event))
                 if isinstance(event, h2.events.DataReceived):
-                    self.logger.info(event.data)
+                    logging.info(event.data)
                     if event.stream_ended:
                         return
                 if isinstance(event, h2.events.ResponseReceived):
                     for header in event.headers:
                         if expected_content in header[1]:
-                            self.logger.debug("expectation" + str(expectation) + str(event.headers))
-                            expectation.update({"status":"passed"})
+                            logging.debug(
+                                "expectation" + str(expectation) + str(event.headers))
+                            expectation.update({"status": "passed"})
                             return expectation
 
 

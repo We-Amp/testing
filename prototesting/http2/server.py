@@ -22,7 +22,6 @@ class Server:
         self.address = "0.0.0.0"
         self.httpconn = {}
         self.tcpsock = {}
-        self.logger = logging.getLogger(__name__)
         self.events = {}
         self.__create_class_methods()
 
@@ -40,28 +39,28 @@ class Server:
         self.sock.bind((self.address, self.port))
         self.sock.listen(5)
 
-        self.logger.debug("TCP socket:" + str(self.sock))
+        logging.debug("TCP socket:" + str(self.sock))
 
         while self._should_serve:
-            self.logger.debug("Waiting for connection")
+            logging.debug("Waiting for connection")
 
             tcpconn, address = self.sock.accept()
-            self.logger.info(address)
+            logging.info(address)
             # :TODO(Piyush): Move everything from here to different thread
             # Create a new object for storing connections
-            self.logger.debug("TCP connection:" + str(tcpconn))
+            logging.debug("TCP connection:" + str(tcpconn))
 
             context = self.get_http2_ssl_context()
 
             tcpsock = self.negotiate_tls(tcpconn, context)
-            self.logger.debug("TLS Connection: " + str(tcpsock))
+            logging.debug("TLS Connection: " + str(tcpsock))
 
             config = h2.config.H2Configuration(client_side=False)
             httpconn = h2.connection.H2Connection(config=config)
             httpconn.initiate_connection()
             tcpsock.sendall(httpconn.data_to_send())
 
-            self.logger.debug("HTTP2 connection: " + str(httpconn))
+            logging.debug("HTTP2 connection: " + str(httpconn))
 
             # Save tcpsock and httpconn
             self.httpconn[address] = httpconn
@@ -94,7 +93,7 @@ class Server:
         # blacklist defined in this section allows only the AES GCM and ChaCha20
         # cipher suites with ephemeral key negotiation.
         ctx.set_ciphers("ECDHE-RSA-AES256-GCM-SHA384")
-        self.logger.debug(ctx.get_ciphers())
+        logging.debug(ctx.get_ciphers())
 
         ctx.load_cert_chain(certfile="certs/server.crt",
                             keyfile="certs/server.key")
@@ -187,13 +186,13 @@ class Server:
             tcpsock = self.tcpsock[address]
             httpconn = self.httpconn[address]
             data = tcpsock.recv(65535)
-            self.logger.debug("\nTLS Data:")
-            self.logger.debug(data)
+            logging.debug("\nTLS Data:")
+            logging.debug(data)
             if not data:
                 break
             events = httpconn.receive_data(data)
             for event in events:
-                self.logger.info("\nServer Event fired: " + str(event))
+                logging.info("\nServer Event fired: " + str(event))
                 self.handle_event(event, address)
 
     def handle_event(self, event, address):
@@ -205,7 +204,7 @@ class Server:
 
         if class_name in self.events:
             response_data = self.events[class_name]
-            self.logger.info(str(response_data))
+            logging.info(str(response_data))
             threading_event, test_unit, name = response_data
 
             #:TODO(Piyush): send response object instead of event here
@@ -234,9 +233,9 @@ class Server:
         elif isinstance(event, h2.events.RemoteSettingsChanged):
             pass
         elif isinstance(event, h2.events.RequestReceived):
-            self.logger.info(dir(self))
+            logging.info(dir(self))
             if __name__ == "__main__":
-                self.logger.debug(event.headers)
+                logging.debug(event.headers)
                 self.sendresponseheaders(address=address)
                 self.sendresponsebody(address=address)
 

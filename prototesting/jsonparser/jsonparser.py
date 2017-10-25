@@ -8,6 +8,7 @@ import json
 import logging
 import threading
 
+
 class Module:
     """
         Object corresponds to create statement in json
@@ -51,7 +52,8 @@ class TestUnit:
             Handles parallel execution of tests/cmds
         """
         for cmds in cmdslist:
-            thread = threading.Thread(target=self.parser, kwargs=dict(cmds=cmds))
+            thread = threading.Thread(
+                target=self.parser, kwargs=dict(cmds=cmds))
             thread.start()
             self.threads.append(thread)
 
@@ -64,15 +66,16 @@ class TestUnit:
         registerforevent = getattr(obj, event_name)
         waitfor_event = threading.Event()
         registerforevent(waitfor_event, self, cmd["name"])
-        logger = logging.getLogger(__name__)
-        logger.debug("waitfor setting event, current thread:" + str(threading.get_ident()))
+        logging.debug("waitfor setting event, current thread:" +
+                      str(threading.get_ident()))
         waitfor_events.append(waitfor_event)
 
         # check if next cmd is also waitfor
         cmd = cmds[index + 1]
         if "action" in cmd:
             if cmd["action"] == "waitfor":
-                waitfor_events = self.handle_waitfor(index, cmd, cmds, waitfor_events)
+                waitfor_events = self.handle_waitfor(
+                    index, cmd, cmds, waitfor_events)
         return waitfor_events
 
     def parser(self, cmds):
@@ -81,7 +84,6 @@ class TestUnit:
         """
         lock = threading.RLock()
         with lock:
-            logger = logging.getLogger(__name__)
 
             for index, cmd in enumerate(cmds):
                 print(cmd)
@@ -99,13 +101,15 @@ class TestUnit:
                     if cmd["action"] == "parallel":
                         self.handle_parallel(cmd["list"])
                     elif cmd["action"] == "waitfor":
-                        logger.debug("waitfor action, current thread:" + str(threading.get_ident()))
+                        logging.debug(
+                            "waitfor action, current thread:" + str(threading.get_ident()))
                         waitfor_events = []
-                        waitfor_events = self.handle_waitfor(index, cmd, cmds, waitfor_events)
+                        waitfor_events = self.handle_waitfor(
+                            index, cmd, cmds, waitfor_events)
                         for event in waitfor_events:
-                            logger.debug("Waiting on event: " + cmd["name"])
+                            logging.debug("Waiting on event: " + cmd["name"])
                             event.wait()
-                            logger.debug("Event received: " + cmd["name"])
+                            logging.debug("Event received: " + cmd["name"])
                     else:
                         action = None
                         action_response = None
@@ -119,7 +123,7 @@ class TestUnit:
                                 args.append(cmd[action_item])
 
                         mod = getattr(self, action[0])
-                        logger.debug(dir(mod))
+                        logging.debug(dir(mod))
 
                         response = getattr(mod, action[1])(*args)
 
@@ -144,8 +148,7 @@ class TestUnit:
             json_data = json.loads(json_text)
 
         except ValueError:
-            logger = logging.getLogger(__name__)
-            logger.error("Test cases are invalid")
+            logging.error("Test cases are invalid")
             return
 
         self.parser(json_data)
@@ -158,9 +161,9 @@ class TestUnit:
             Print Test output
         """
         # print output
-        print("="*25)
+        print("=" * 25)
         print("Test Ouptut")
-        print("="*25)
+        print("=" * 25)
         print("Test: ", self.name)
         print("Test Description:", self.description)
         print("Expectations:")

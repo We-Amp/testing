@@ -39,5 +39,6 @@ def main():
                 test_unit = jsonparser.TestUnit(fdata)
                 test_unit.print_output()
 
+
 if __name__ == "__main__":
     main()
