@@ -8,8 +8,13 @@ from os import listdir
 from os.path import dirname, isfile, join, realpath
 from jsonparser import jsonparser
 
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s\n')
+logging.basicConfig(level=logging.INFO,
+                    format='%(threadName)s:'
+                    '%(filename)s:'
+                    '%(lineno)d:'
+                    '%(levelname)s:'
+                    '%(funcName)s():\t'
+                    '%(message)s')
 
 
 def main():

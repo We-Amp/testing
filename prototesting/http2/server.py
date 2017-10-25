@@ -20,10 +20,11 @@ class Server:
 
         self.port = 8080
         self.address = "0.0.0.0"
-        self.events = []
-        self.httpconn = None
-        self.tcpsock = None
+        self.httpconn = {}
+        self.tcpsock = {}
         self.logger = logging.getLogger(__name__)
+        self.events = {}
+        self.__create_class_methods()
 
     def config(self, config):
         """
@@ -44,22 +45,30 @@ class Server:
         while self._should_serve:
             self.logger.debug("Waiting for connection")
 
-            tcpconn, unused_address = self.sock.accept()
+            tcpconn, address = self.sock.accept()
+            self.logger.info(address)
+            # :TODO(Piyush): Move everything from here to different thread
+            # Create a new object for storing connections
             self.logger.debug("TCP connection:" + str(tcpconn))
 
             context = self.get_http2_ssl_context()
 
-            self.tcpsock = self.negotiate_tls(tcpconn, context)
-            self.logger.debug("TLS Connection: " + str(self.tcpsock))
+            tcpsock = self.negotiate_tls(tcpconn, context)
+            self.logger.debug("TLS Connection: " + str(tcpsock))
 
             config = h2.config.H2Configuration(client_side=False)
-            self.httpconn = h2.connection.H2Connection(config=config)
-            self.httpconn.initiate_connection()
-            self.tcpsock.sendall(self.httpconn.data_to_send())
+            httpconn = h2.connection.H2Connection(config=config)
+            httpconn.initiate_connection()
+            tcpsock.sendall(httpconn.data_to_send())
 
-            self.logger.debug("HTTP2 connection: " + str(self.httpconn))
+            self.logger.debug("HTTP2 connection: " + str(httpconn))
 
-            self.handle()
+            # Save tcpsock and httpconn
+            self.httpconn[address] = httpconn
+            self.tcpsock[address] = tcpsock
+            # Handle incoming requests on different thread so as to unblock main server thread
+            thread = threading.Thread(target=self.handle, args=(address,))
+            thread.start()
 
     def get_http2_ssl_context(self):
         """
@@ -123,18 +132,20 @@ class Server:
 
         return tls_conn
 
-    def sendresponseheaders(self, unused_headers=None):
+    def sendresponseheaders(self, address=None, unused_headers=None):
         """Send response headers to client"""
-        self.logger.info("Inside sendresponse$$$$$$$$$$$$$$")
-        stream_id = None
-        for event in self.events:
-            self.logger.info("\nServer Event fired: ", str(event))
-            if isinstance(event, h2.events.RequestReceived):
-                self.logger.info(event.headers)
-                stream_id = event.stream_id
-        # response_data = json.dumps(dict(event.headers)).encode('utf-8')
+        stream_id = 1
+        #:TODO(Piyush) TEMPORARY HACK!
+        # Remove ASAP
 
-        self.httpconn.send_headers(
+        if not address:
+            httpconn = self.httpconn[next(iter(self.httpconn))]
+            tcpsock = self.tcpsock[next(iter(self.tcpsock))]
+        else:
+            httpconn = self.httpconn[address]
+            tcpsock = self.tcpsock[address]
+
+        httpconn.send_headers(
             stream_id=stream_id,
             headers=[
                 (':status', '200'),
@@ -143,49 +154,128 @@ class Server:
             ],
         )
 
-        data_to_send = self.httpconn.data_to_send()
+        data_to_send = httpconn.data_to_send()
         if data_to_send:
-            self.tcpsock.sendall(data_to_send)
+            tcpsock.sendall(data_to_send)
 
-    def sendresponsebody(self, data="Hello World", end_stream=True):
+    def sendresponsebody(self, data="Hello World", address=None, end_stream=True):
         """Send response body to client"""
-        stream_id = None
-        for event in self.events:
-            self.logger.info("\nServer Event fired: ", str(event))
-            if isinstance(event, h2.events.RequestReceived):
-                self.logger.info(event.headers)
-                stream_id = event.stream_id
-        # response_data = json.dumps(dict(event.headers)).encode('utf-8')
+        stream_id = 1
+        #:TODO(Piyush) TEMPORARY HACK!
+        # Remove ASAP
 
-        self.httpconn.send_data(
+        if not address:
+            httpconn = self.httpconn[next(iter(self.httpconn))]
+            tcpsock = self.tcpsock[next(iter(self.tcpsock))]
+        else:
+            httpconn = self.httpconn[address]
+            tcpsock = self.tcpsock[address]
+
+        httpconn.send_data(
             stream_id=stream_id,
-            data=b"{data}",
+            data=data.encode(),
             end_stream=end_stream
         )
 
-        data_to_send = self.httpconn.data_to_send()
+        data_to_send = httpconn.data_to_send()
         if data_to_send:
-            self.tcpsock.sendall(data_to_send)
+            tcpsock.sendall(data_to_send)
 
-    def handle(self):
+    def handle(self, address):
         """handle something something"""
         while self._should_serve:
-            data = self.tcpsock.recv(65535)
+            tcpsock = self.tcpsock[address]
+            httpconn = self.httpconn[address]
+            data = tcpsock.recv(65535)
             self.logger.debug("\nTLS Data:")
             self.logger.debug(data)
             if not data:
                 break
-            self.events = self.httpconn.receive_data(data)
-            # for event in events:
-            #     self.logger.info("\nServer Event fired: ", str(event))
-            #     if isinstance(event, h2.events.RequestReceived):
-            # self.logger.debug(event.headers)
-            # self.sendresponseheaders(httpconn, event)
-            # self.sendresponsebody(httpconn, event)
+            events = httpconn.receive_data(data)
+            for event in events:
+                self.logger.info("\nServer Event fired: " + str(event))
+                self.handle_event(event, address)
 
-            data_to_send = self.httpconn.data_to_send()
-            if data_to_send:
-                self.tcpsock.sendall(data_to_send)
+    def handle_event(self, event, address):
+        """
+        handle_events processes each event and then stores them,
+        so that they can be handled async when test specifies it
+        """
+        class_name = event.__class__.__name__
+
+        if class_name in self.events:
+            response_data = self.events[class_name]
+            self.logger.info(str(response_data))
+            threading_event, test_unit, name = response_data
+
+            #:TODO(Piyush): send response object instead of event here
+            setattr(test_unit, name, event)
+            threading_event.set()
+
+        # Not sure if these all are needed, special handlin can/should be added
+        # on need to basis
+
+        if isinstance(event, h2.events.AlternativeServiceAvailable):
+            pass
+        elif isinstance(event, h2.events.ChangedSetting):
+            pass
+        elif isinstance(event, h2.events.ConnectionTerminated):
+            pass
+        elif isinstance(event, h2.events.DataReceived):
+            pass
+        elif isinstance(event, h2.events.InformationalResponseReceived):
+            pass
+        elif isinstance(event, h2.events.PingAcknowledged):
+            pass
+        elif isinstance(event, h2.events.PriorityUpdated):
+            pass
+        elif isinstance(event, h2.events.PushedStreamReceived):
+            pass
+        elif isinstance(event, h2.events.RemoteSettingsChanged):
+            pass
+        elif isinstance(event, h2.events.RequestReceived):
+            self.logger.info(dir(self))
+            if __name__ == "__main__":
+                self.logger.debug(event.headers)
+                self.sendresponseheaders(address=address)
+                self.sendresponsebody(address=address)
+
+        elif isinstance(event, h2.events.ResponseReceived):
+            pass
+        elif isinstance(event, h2.events.SettingsAcknowledged):
+            pass
+        elif isinstance(event, h2.events.StreamEnded):
+            pass
+        elif isinstance(event, h2.events.StreamReset):
+            pass
+        elif isinstance(event, h2.events.TrailersReceived):
+            pass
+        elif isinstance(event, h2.events.WindowUpdated):
+            pass
+
+    def __create_class_methods(self):
+        """
+            Create functions from list of events such that it sets itself in
+            events list
+        """
+        events_list = ['AlternativeServiceAvailable', 'ChangedSetting', 'ConnectionTerminated',
+                       'DataReceived', 'InformationalResponseReceived', 'PingAcknowledged',
+                       'PriorityUpdated', 'PushedStreamReceived', 'RemoteSettingsChanged',
+                       'RequestReceived', 'ResponseReceived', 'SettingsAcknowledged',
+                       'StreamEnded', 'StreamReset', 'TrailersReceived', 'WindowUpdated']
+
+        for event_name in events_list:
+            self.__add_method(event_name)
+
+    def __add_method(self, event_name):
+        """
+        Add a method with name event_name to class
+        """
+
+        def fn(event, test_unit, name):
+            """This function sets events list will required value"""
+            self.events[event_name] = (event, test_unit, name)
+        setattr(self, event_name, fn)
 
     def kill(self):
         """Close the serving socket"""
@@ -216,4 +306,10 @@ def main():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO,
+                        format='%(filename)s:'
+                        '%(lineno)d:'
+                        '%(levelname)s:'
+                        '%(funcName)s():\t'
+                        '%(message)s')
     main()

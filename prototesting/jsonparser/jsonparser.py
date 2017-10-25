@@ -140,8 +140,14 @@ class TestUnit:
 
     def parse(self, json_text):
         """Parse test cases defined in json"""
+        try:
+            json_data = json.loads(json_text)
 
-        json_data = json.loads(json_text)
+        except ValueError:
+            logger = logging.getLogger(__name__)
+            logger.error("Test cases are invalid")
+            return
+
         self.parser(json_data)
 
         for thread in self.threads:
