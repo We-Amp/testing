@@ -25,7 +25,9 @@ import h2.connection
 
 
 class Client():
-
+    """
+        This Client provides http2 client functionality.
+    """
     def __init__(self):
         self.context = None
         self.connection = None
@@ -169,7 +171,7 @@ class Client():
                 if isinstance(event, h2.events.ResponseReceived):
                     for header in event.headers:
                         if expected_content in header[1]:
-                            self.logger.debug("expectation", expectation, event.headers)
+                            self.logger.debug("expectation" + str(expectation) + str(event.headers))
                             expectation.update({"status":"passed"})
                             return expectation
 

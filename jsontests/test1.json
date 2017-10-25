@@ -15,26 +15,40 @@
     "name": "h2c"
   },
   {
-    "action": "h2c.request",
-    "url": "https://localhost:8080/test1.html",
-    "name": "request1"
-  },
-  {
-    "expect": "request1.receivecontent",
-    "expected": "200",
-    "timeout": 100,
-    "Description": "Received Headers"
-  },
-  {
-    "action": "h2s.sendresponseheaders",
-    "name": "responseHeader1"
-  },
-  {
-    "action": "h2s.sendresponsebody",
-    "data": "This is server",
-    "name": "responseBody1"
-  },
-  {
-    "action": "h2s.kill"
+    "action": "parallel",
+    "list": [
+      [
+        {
+          "action": "h2c.request",
+          "url": "https://localhost:8080/test1.html",
+          "name": "request1"
+        },
+        {
+          "expect": "request1.receivecontent",
+          "expected": "200",
+          "timeout": 100,
+          "Description": "Received Headers"
+        }
+      ],
+      [
+        {
+          "action": "waitfor",
+          "event": "h2s.RequestReceived",
+          "name": "h2srequest1"
+        },
+        {
+          "action": "h2s.sendresponseheaders",
+          "name": "responseHeader1"
+        },
+        {
+          "action": "h2s.sendresponsebody",
+          "data": "This is server",
+          "name": "responseBody1"
+        },
+        {
+          "action": "h2s.kill"
+        }
+      ]
+    ]
   }
 ]

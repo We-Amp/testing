@@ -8,7 +8,7 @@ from os import listdir
 from os.path import dirname, isfile, join, realpath
 from jsonparser import jsonparser
 
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s\n')
 
 
@@ -20,7 +20,7 @@ def main():
     # 1. Pull this from file.
     # 2. Validate json
     # 3. Proper error handling
-    # 4. Enable disable printing of data
+    # 4. Logging with configurable levels
 
     testfilespath = join(dirname(realpath(__file__)), "../jsontests")
 
@@ -31,8 +31,8 @@ def main():
         if file.lower().endswith('.json'):
             with open(file) as f:
                 fdata = f.read()
-                jsonparser.parse(fdata)
-
+                test_unit = jsonparser.TestUnit(fdata)
+                test_unit.print_output()
 
 if __name__ == "__main__":
     main()
