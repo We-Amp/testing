@@ -44,7 +44,13 @@ class Server:
         while self._should_serve:
             logging.debug("Waiting for connection")
 
-            tcpconn, address = self.sock.accept()
+            try:
+                tcpconn, address = self.sock.accept()
+            except socket.error:
+                if self.sock:
+                    self.sock.close()
+                return
+
             logging.info(address)
             # :TODO(Piyush): Move everything from here to different thread
             # Create a new object for storing connections
@@ -279,6 +285,11 @@ class Server:
     def kill(self):
         """Close the serving socket"""
         self._should_serve = False
+        for address in self.tcpsock:
+            self.tcpsock[address].shutdown(socket.SHUT_RDWR)
+            self.tcpsock[address].close()
+
+        self.sock.shutdown(socket.SHUT_RDWR)
         self.sock.close()
 
     def start(self, config=None):
