@@ -53,7 +53,7 @@ class TestUnit:
         """
         for cmds in cmdslist:
             thread = threading.Thread(
-                target=self.parser, kwargs=dict(cmds=cmds))
+                target=self.parser, kwargs=dict(cmds=cmds), name=cmds[0]["name"])
             thread.start()
             self.threads.append(thread)
 

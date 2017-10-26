@@ -4,17 +4,17 @@
 """
 import logging
 import socket
-import ssl
 import threading
 
 import h2.connection
 import h2.events
+from http2 import h2utils
 
 
 class Server:
     """Class Server stores all the information required for starting http2 server"""
 
-    def __init__(self, config=None):
+    def __init__(self):
         self.sock = None
         self._should_serve = True
 
@@ -51,91 +51,15 @@ class Server:
                     self.sock.close()
                 return
 
-            logging.info(address)
+            logging.info("Socket Created at " + str(address))
             # :TODO(Piyush): Move everything from here to different thread
             # Create a new object for storing connections
             logging.debug("TCP connection:" + str(tcpconn))
 
-            context = self.get_http2_ssl_context()
-
-            tcpsock = self.negotiate_tls(tcpconn, context)
-            logging.debug("TLS Connection: " + str(tcpsock))
-
-            config = h2.config.H2Configuration(client_side=False)
-            httpconn = h2.connection.H2Connection(config=config)
-            httpconn.initiate_connection()
-            tcpsock.sendall(httpconn.data_to_send())
-
-            logging.debug("HTTP2 connection: " + str(httpconn))
-
-            # Save tcpsock and httpconn
-            self.httpconn[address] = httpconn
-            self.tcpsock[address] = tcpsock
             # Handle incoming requests on different thread so as to unblock main server thread
-            thread = threading.Thread(target=self.handle, args=(address,))
+            thread = threading.Thread(
+                target=self.handle, args=(address, tcpconn,), name='ListenerThread')
             thread.start()
-
-    def get_http2_ssl_context(self):
-        """
-        This function creates an SSLContext object that is suitably configured for
-        HTTP/2. If you're working with Python TLS directly, you'll want to do the
-        exact same setup as this function does.
-        """
-        # Get the basic context from the standard library.
-        ctx = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
-
-        # RFC 7540 Section 9.2: Implementations of HTTP/2 MUST use TLS version 1.2
-        # or higher. Disable TLS 1.1 and lower.
-        ctx.options |= (
-            ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3 | ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1
-        )
-
-        # RFC 7540 Section 9.2.1: A deployment of HTTP/2 over TLS 1.2 MUST disable
-        # compression.
-        ctx.options |= ssl.OP_NO_COMPRESSION
-
-        # RFC 7540 Section 9.2.2: "deployments of HTTP/2 that       use TLS 1.2 MUST
-        # support TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256". In practice, the
-        # blacklist defined in this section allows only the AES GCM and ChaCha20
-        # cipher suites with ephemeral key negotiation.
-        ctx.set_ciphers("ECDHE-RSA-AES256-GCM-SHA384")
-        logging.debug(ctx.get_ciphers())
-
-        ctx.load_cert_chain(certfile="certs/server.crt",
-                            keyfile="certs/server.key")
-
-        # We want to negotiate using NPN and ALPN. ALPN is mandatory, but NPN may
-        # be absent, so allow that. This setup allows for negotiation of HTTP/1.1.
-        ctx.set_alpn_protocols(["h2", "http/1.1"])
-
-        try:
-            ctx.set_npn_protocols(["h2", "http/1.1"])
-        except NotImplementedError:
-            pass
-
-        return ctx
-
-    def negotiate_tls(self, tcp_conn, context):
-        """
-        Given an established TCP connection and a HTTP/2-appropriate TLS context,
-        this function:
-
-        1. wraps TLS around the TCP connection.
-        2. confirms that HTTP/2 was negotiated and, if it was not, throws an error.
-        """
-        tls_conn = context.wrap_socket(tcp_conn, server_side=True)
-
-        # Always prefer the result from ALPN to that from NPN.
-        # You can only check what protocol was negotiated once the handshake is
-        # complete.
-        negotiated_protocol = tls_conn.selected_alpn_protocol()
-        if negotiated_protocol is None:
-            negotiated_protocol = tls_conn.selected_npn_protocol()
-
-        if negotiated_protocol != "h2":
-            raise RuntimeError("Didn't negotiate HTTP/2!")
-
-        return tls_conn
 
     def sendresponseheaders(self, address=None, unused_headers=None):
         """Send response headers to client"""
@@ -186,11 +110,25 @@ class Server:
         if data_to_send:
             tcpsock.sendall(data_to_send)
 
-    def handle(self, address):
+    def handle(self, address, tcpconn):
         """handle something something"""
+
+        context = h2utils.get_http2_ssl_context(type="server")
+
+        tcpsock = h2utils.negotiate_tls(tcpconn, context, type="server")
+        logging.debug("TLS Connection: " + str(tcpsock))
+
+        config = h2.config.H2Configuration(client_side=False)
+        httpconn = h2.connection.H2Connection(config=config)
+        httpconn.initiate_connection()
+        tcpsock.sendall(httpconn.data_to_send())
+
+        logging.debug("HTTP2 connection: " + str(httpconn))
+
+        # Save tcpsock and httpconn
+        self.httpconn[address] = httpconn
+        self.tcpsock[address] = tcpsock
         while self._should_serve:
-            tcpsock = self.tcpsock[address]
-            httpconn = self.httpconn[address]
             data = tcpsock.recv(65535)
             logging.debug("\nTLS Data:")
             logging.debug(data)
@@ -198,7 +136,8 @@ class Server:
                 break
             events = httpconn.receive_data(data)
             for event in events:
-                logging.info("\nServer Event fired: " + str(event))
+                logging.info("Server Event fired: " +
+                             event.__class__.__name__)
                 self.handle_event(event, address)
 
     def handle_event(self, event, address):
@@ -210,7 +149,6 @@ class Server:
 
         if class_name in self.events:
             response_data = self.events[class_name]
-            logging.info(str(response_data))
             threading_event, test_unit, name = response_data
 
             #:TODO(Piyush): send response object instead of event here
@@ -239,7 +177,6 @@ class Server:
         elif isinstance(event, h2.events.RemoteSettingsChanged):
             pass
         elif isinstance(event, h2.events.RequestReceived):
-            logging.info(dir(self))
             if __name__ == "__main__":
                 logging.debug(event.headers)
                 self.sendresponseheaders(address=address)
@@ -296,7 +233,8 @@ class Server:
         """Entrypoint for starting the server"""
         if config:
             self.config(config)
-        thread = threading.Thread(target=self.create_socket)
+        thread = threading.Thread(
+            target=self.create_socket, name="ServerThread")
         thread.start()
 
 

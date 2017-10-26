@@ -9,12 +9,12 @@ from os.path import dirname, isfile, join, realpath
 from jsonparser import jsonparser
 
 logging.basicConfig(level=logging.INFO,
-                    format='%(threadName)s:'
+                    format='\n%(threadName)s:'
                     '%(filename)s:'
                     '%(lineno)d:'
                     '%(levelname)s:'
-                    '%(funcName)s():\t'
-                    '%(message)s')
+                    '%(funcName)s(): '
+                    '%(message)s\n')
 
 
 def main():
