@@ -15,14 +15,46 @@ This code requires Python 3.5 or later.
 """
 import logging
 import socket
-import ssl
+import threading
 from urllib.parse import urlparse
+
 import h2.connection
+
 from http2 import h2utils
+
 
 """
     Client class to send client request.
 """
+
+
+class Response:
+    """
+    Response holds all data needed to verify the expectations of test
+    """
+
+    def __init__(self, event):
+        try:
+            self.received_data = event.data
+
+        except AttributeError:
+            pass
+
+        try:
+            self.headers = event.headers
+
+        except AttributeError:
+            pass
+
+        self.stream_id = event.stream_id
+
+    def response_headers(self, unused_expected, field):
+        for value in self.headers:
+            if value[0] == field:
+                return value[1]
+
+    def data(self):
+        return self.received_data
 
 
 class Client():
@@ -35,6 +67,32 @@ class Client():
         self.connection = None
         self.tls_connection = None
         self.http2_connection = None
+        self.events = {}
+        self.__create_class_methods()
+
+    def __create_class_methods(self):
+        """
+            Create functions from list of events such that it sets itself in
+            events list
+        """
+        events_list = ['AlternativeServiceAvailable', 'ChangedSetting', 'ConnectionTerminated',
+                       'DataReceived', 'InformationalResponseReceived', 'PingAcknowledged',
+                       'PriorityUpdated', 'PushedStreamReceived', 'RemoteSettingsChanged',
+                       'RequestReceived', 'ResponseReceived', 'SettingsAcknowledged',
+                       'StreamEnded', 'StreamReset', 'TrailersReceived', 'WindowUpdated']
+
+        for event_name in events_list:
+            self.__add_method(event_name)
+
+    def __add_method(self, event_name):
+        """
+        Add a method with name event_name to class
+        """
+
+        def fn(event, test_unit, name):
+            """This function sets events list will required value"""
+            self.events[event_name] = (event, test_unit, name)
+        setattr(self, event_name, fn)
 
     def establish_tcp_connection(self, url, port):
         """
@@ -43,6 +101,9 @@ class Client():
         return socket.create_connection((url, port))
 
     def request(self, url):
+        """
+        TODO(Piyush): Add description
+        """
         # Step 1: Set up your TLS context.
         self.context = h2utils.get_http2_ssl_context(type="client")
 
@@ -88,11 +149,17 @@ class Client():
         if data_to_send:
             self.tls_connection.sendall(data_to_send)
 
+        thread = threading.Thread(
+            target=self.receive_content, name="ClientThread")
+        thread.start()
+
         return self
 
-    def receivecontent(self, expected_content, unused_timeout, test_output):
-        logging.debug("waiting for server to send " + str(expected_content))
-        expectation = test_output
+    # def receivecontent(self, expected_content, unused_timeout, test_output):
+    def receive_content(self):
+        """
+        TODO(Piyush): Add description
+        """
 
         while True:
             data = self.tls_connection.recv(65535)
@@ -102,17 +169,62 @@ class Client():
             events = self.http2_connection.receive_data(data)
             for event in events:
                 logging.info("CLient Event fired: " + event.__class__.__name__)
-                if isinstance(event, h2.events.DataReceived):
-                    logging.info(event.data)
-                    if event.stream_ended:
-                        return
-                if isinstance(event, h2.events.ResponseReceived):
-                    for header in event.headers:
-                        if expected_content in header[1]:
-                            logging.debug(
-                                "expectation" + str(expectation) + str(event.headers))
-                            expectation.update({"status": "passed"})
-                            return expectation
+                self.handle_event(event)
+                if isinstance(event, h2.events.StreamEnded):
+                    return
+
+    def handle_event(self, event):
+        """
+        handle_events processes each event and then stores them,
+        so that they can be handled async when test specifies it
+        """
+        class_name = event.__class__.__name__
+
+        if class_name in self.events:
+            response_data = self.events[class_name]
+            threading_event, test_unit, name = response_data
+
+            #:TODO(Piyush): send response object instead of event here
+            setattr(test_unit, name, Response(event))
+            threading_event.set()
+
+        # Not sure if these all are needed, special handlin can/should be added
+        # on need to basis
+
+        if isinstance(event, h2.events.AlternativeServiceAvailable):
+            pass
+        elif isinstance(event, h2.events.ChangedSetting):
+            pass
+        elif isinstance(event, h2.events.ConnectionTerminated):
+            pass
+        elif isinstance(event, h2.events.DataReceived):
+            pass
+        elif isinstance(event, h2.events.InformationalResponseReceived):
+            pass
+        elif isinstance(event, h2.events.PingAcknowledged):
+            pass
+        elif isinstance(event, h2.events.PriorityUpdated):
+            pass
+        elif isinstance(event, h2.events.PushedStreamReceived):
+            pass
+        elif isinstance(event, h2.events.RemoteSettingsChanged):
+            pass
+        elif isinstance(event, h2.events.RequestReceived):
+            pass
+
+        elif isinstance(event, h2.events.ResponseReceived):
+            logging.info('Got response received')
+
+        elif isinstance(event, h2.events.SettingsAcknowledged):
+            pass
+        elif isinstance(event, h2.events.StreamEnded):
+            pass
+        elif isinstance(event, h2.events.StreamReset):
+            pass
+        elif isinstance(event, h2.events.TrailersReceived):
+            pass
+        elif isinstance(event, h2.events.WindowUpdated):
+            pass
 
 
 def create():

@@ -24,10 +24,15 @@
           "name": "request1"
         },
         {
-          "expect": "request1.receivecontent",
-          "expected": "200",
-          "timeout": 100,
-          "Description": "Received Headers"
+          "action": "waitfor",
+          "event": "request1.ResponseReceived",
+          "name": "request1response"
+        },
+        {
+          "action": "expect",
+          "value": "request1response.response_headers.:status",
+          "expected": 200,
+          "Description": "Status should be 200 OK"
         }
       ],
       [
@@ -35,6 +40,12 @@
           "action": "waitfor",
           "event": "h2s.RequestReceived",
           "name": "h2srequest1"
+        },
+        {
+          "action": "expect",
+          "value": "h2srequest1.request_headers.:scheme",
+          "expected": "https",
+          "Description": "Scheme should be https"
         },
         {
           "action": "h2s.sendresponseheaders",

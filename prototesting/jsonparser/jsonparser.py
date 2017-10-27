@@ -75,8 +75,38 @@ class TestUnit:
         if "action" in cmd:
             if cmd["action"] == "waitfor":
                 waitfor_events = self.handle_waitfor(
-                    index, cmd, cmds, waitfor_events)
+                    index + 1, cmd, cmds, waitfor_events)
         return waitfor_events
+
+    def handle_expectation(self, cmd):
+        """
+        Handle Expectations
+        """
+        args = []
+        output = {"Description": cmd["Description"]}
+        expect = cmd["value"].split(".")
+        invalid_action_items = [
+            "action", "value", "Description"]
+        for action_item in cmd:
+            if action_item not in invalid_action_items:
+                args.append(cmd[action_item])
+        mod = getattr(self, expect[0])
+        if len(expect) > 2:
+            args.append(expect[2])
+            logging.info(args)
+            result = getattr(mod, expect[1])(*args)
+            expectation = {"Description": cmd["Description"]}
+            logging.info(output)
+            if str(result) == str(cmd["expected"]):
+                output["status"] = "passed"
+            else:
+                output["status"] = "failed"
+            self.expectations.append(output)
+        else:
+            args.append(output)
+            expectation = getattr(mod, expect[1])(*args)
+            logging.info(expectation)
+            self.expectations.append(expectation)
 
     def parser(self, cmds):
         """
@@ -100,6 +130,7 @@ class TestUnit:
                 if "action" in cmd:
                     if cmd["action"] == "parallel":
                         self.handle_parallel(cmd["list"])
+
                     elif cmd["action"] == "waitfor":
                         logging.debug(
                             "waitfor action, current thread:" + str(threading.get_ident()))
@@ -110,6 +141,10 @@ class TestUnit:
                             logging.debug("Waiting on event: " + cmd["name"])
                             event.wait()
                             logging.debug("Event received: " + cmd["name"])
+
+                    elif cmd["action"] == "expect":
+                        self.handle_expectation(cmd)
+
                     else:
                         action = None
                         action_response = None
@@ -129,18 +164,6 @@ class TestUnit:
 
                         if action_response:
                             setattr(self, action_response, response)
-
-                if "expect" in cmd:
-                    args = []
-                    output = {"Description": cmd["Description"]}
-                    expect = cmd["expect"].split(".")
-                    for action_item in cmd:
-                        if action_item != "expect" and action_item != "Description":
-                            args.append(cmd[action_item])
-                    args.append(output)
-                    mod = getattr(self, expect[0])
-                    expectation = getattr(mod, expect[1])(*args)
-                    self.expectations.append(expectation)
 
     def parse(self, json_text):
         """Parse test cases defined in json"""

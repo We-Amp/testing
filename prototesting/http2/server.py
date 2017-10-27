@@ -8,7 +8,37 @@ import threading
 
 import h2.connection
 import h2.events
+
 from http2 import h2utils
+
+
+class Response:
+    """
+    Response holds all data needed to verify the expectations of test
+    """
+
+    def __init__(self, event):
+        try:
+            self.received_data = event.data
+
+        except AttributeError:
+            pass
+
+        try:
+            self.headers = event.headers
+
+        except AttributeError:
+            pass
+
+        self.stream_id = event.stream_id
+
+    def request_headers(self, unused_expected, field):
+        for value in self.headers:
+            if value[0] == field:
+                return value[1]
+
+    def data(self):
+        return self.received_data
 
 
 class Server:
@@ -152,7 +182,7 @@ class Server:
             threading_event, test_unit, name = response_data
 
             #:TODO(Piyush): send response object instead of event here
-            setattr(test_unit, name, event)
+            setattr(test_unit, name, Response(event))
             threading_event.set()
 
         # Not sure if these all are needed, special handlin can/should be added
