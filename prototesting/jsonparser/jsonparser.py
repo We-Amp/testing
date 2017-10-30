@@ -91,9 +91,6 @@ class TestUnit:
         expect = cmd["value"].split(".")
         invalid_action_items = [
             "action", "value", "Description"]
-        for action_item in cmd:
-            if action_item not in invalid_action_items:
-                args.append(cmd[action_item])
         mod = getattr(self, expect[0])
         if len(expect) > 2:
             args.append(expect[2])
@@ -107,6 +104,9 @@ class TestUnit:
                 output["status"] = "failed"
             self.expectations.append(output)
         else:
+            for action_item in cmd:
+                if action_item not in invalid_action_items:
+                    args.append(cmd[action_item])
             args.append(output)
             expectation = getattr(mod, expect[1])(*args)
             logging.info(expectation)
@@ -204,6 +204,9 @@ class TestUnit:
                     print("\t" + expect + ": " + output)
             else:
                 print("Something went wrong")
+        print("=" * 25)
+        print("Test End")
+        print("=" * 25)
 
 
 if __name__ == "__main__":

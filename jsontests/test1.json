@@ -30,13 +30,19 @@
         },
         {
           "action": "execute",
-          "execute": "print(request1)\nprint(\"h2 conn:\",request1.http2_connection)"
+          "execute": "print(request1);print('h2 conn:',request1.http2_connection)"
         },
         {
           "action": "expect",
           "value": "request1response.response_headers.:status",
           "expected": 200,
           "Description": "Status should be 200 OK"
+        },
+        {
+          "action": "expect",
+          "value": "request1response.response_headers.server",
+          "expected": "test-h2-server",
+          "Description": "Server name should match"
         }
       ],
       [
@@ -52,11 +58,16 @@
           "Description": "Scheme should be https"
         },
         {
-          "action": "h2s.sendresponseheaders",
-          "name": "responseHeader1"
+          "action": "h2srequest1.send_response_headers",
+          "name": "responseHeader1",
+          "headers": {
+            ":status": 200,
+            "server": "test-h2-server",
+            "content-type": "text/plain"
+          }
         },
         {
-          "action": "h2s.sendresponsebody",
+          "action": "h2srequest1.send_response_body",
           "data": "This is server",
           "name": "responseBody1"
         },

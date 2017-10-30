@@ -17,7 +17,9 @@ class Response:
     Response holds all data needed to verify the expectations of test
     """
 
-    def __init__(self, event):
+    def __init__(self, server, event, address):
+        self.server = server
+        self.address = address
         try:
             self.received_data = event.data
 
@@ -32,13 +34,48 @@ class Response:
 
         self.stream_id = event.stream_id
 
-    def request_headers(self, unused_expected, field):
+    def request_headers(self, field):
+        """
+        Returns request header value of given field
+        """
         for value in self.headers:
             if value[0] == field:
                 return value[1]
 
     def data(self):
+        """
+        Return data contained in event
+        """
         return self.received_data
+
+    def send_response_headers(self, headers=None):
+        """
+        Sends response headers to client
+        """
+        headers_to_send = headers
+        if headers:
+            # :TODO(Piyush): parse and restructure headers here
+            # Convert :status to string as h2 does not want to deal with int
+
+            headers_to_send[':status'] = str(headers_to_send[':status'])
+        else:
+            # Create basic header
+            headers_to_send = [
+                (':status', '200'),
+                ('server', 'basic-h2-server/1.0'),
+                ('content-type', 'application/json'),
+            ]
+        logging.info(headers_to_send)
+
+        self.server.send_headers(
+            stream_id=self.stream_id, address=self.address, headers=headers_to_send)
+
+    def send_response_body(self, data, end_stream=True):
+        """
+        Sends response body to client
+        """
+        self.server.send_body(stream_id=self.stream_id, data=data,
+                              address=self.address, end_stream=end_stream)
 
 
 class Server:
@@ -82,8 +119,7 @@ class Server:
                 return
 
             logging.info("Socket Created at " + str(address))
-            # :TODO(Piyush): Move everything from here to different thread
-            # Create a new object for storing connections
+            # :TODO(Piyush): Create a new object for storing connections
             logging.debug("TCP connection:" + str(tcpconn))
 
             # Handle incoming requests on different thread so as to unblock main server thread
@@ -91,44 +127,34 @@ class Server:
                 target=self.handle, args=(address, tcpconn,), name='ListenerThread')
             thread.start()
 
-    def sendresponseheaders(self, address=None, unused_headers=None):
+    def send_headers(self, stream_id=1, address=None, headers=None):
         """Send response headers to client"""
-        stream_id = 1
-        #:TODO(Piyush) TEMPORARY HACK!
-        # Remove ASAP
 
         if not address:
-            httpconn = self.httpconn[next(iter(self.httpconn))]
-            tcpsock = self.tcpsock[next(iter(self.tcpsock))]
-        else:
-            httpconn = self.httpconn[address]
-            tcpsock = self.tcpsock[address]
+            logging.error("No address to send data to!")
+            return
+
+        httpconn = self.httpconn[address]
+        tcpsock = self.tcpsock[address]
 
         httpconn.send_headers(
             stream_id=stream_id,
-            headers=[
-                (':status', '200'),
-                ('server', 'basic-h2-server/1.0'),
-                ('content-type', 'application/json'),
-            ],
+            headers=headers,
         )
 
         data_to_send = httpconn.data_to_send()
         if data_to_send:
             tcpsock.sendall(data_to_send)
 
-    def sendresponsebody(self, data="Hello World", address=None, end_stream=True):
+    def send_body(self, stream_id=1, data="Hello World", address=None, end_stream=True):
         """Send response body to client"""
-        stream_id = 1
-        #:TODO(Piyush) TEMPORARY HACK!
-        # Remove ASAP
 
         if not address:
-            httpconn = self.httpconn[next(iter(self.httpconn))]
-            tcpsock = self.tcpsock[next(iter(self.tcpsock))]
-        else:
-            httpconn = self.httpconn[address]
-            tcpsock = self.tcpsock[address]
+            logging.error("No address to send data to!")
+            return
+
+        httpconn = self.httpconn[address]
+        tcpsock = self.tcpsock[address]
 
         httpconn.send_data(
             stream_id=stream_id,
@@ -181,8 +207,7 @@ class Server:
             response_data = self.events[class_name]
             threading_event, test_unit, name = response_data
 
-            #:TODO(Piyush): send response object instead of event here
-            setattr(test_unit, name, Response(event))
+            setattr(test_unit, name, Response(self, event, address))
             threading_event.set()
 
         # Not sure if these all are needed, special handlin can/should be added
@@ -209,8 +234,8 @@ class Server:
         elif isinstance(event, h2.events.RequestReceived):
             if __name__ == "__main__":
                 logging.debug(event.headers)
-                self.sendresponseheaders(address=address)
-                self.sendresponsebody(address=address)
+                self.send_headers(address=address)
+                self.send_body(address=address)
 
         elif isinstance(event, h2.events.ResponseReceived):
             pass
@@ -244,10 +269,10 @@ class Server:
         Add a method with name event_name to class
         """
 
-        def fn(event, test_unit, name):
+        def func(event, test_unit, name):
             """This function sets events list will required value"""
             self.events[event_name] = (event, test_unit, name)
-        setattr(self, event_name, fn)
+        setattr(self, event_name, func)
 
     def kill(self):
         """Close the serving socket"""

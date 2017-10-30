@@ -48,7 +48,7 @@ class Response:
 
         self.stream_id = event.stream_id
 
-    def response_headers(self, unused_expected, field):
+    def response_headers(self, field):
         for value in self.headers:
             if value[0] == field:
                 return value[1]
@@ -89,10 +89,10 @@ class Client():
         Add a method with name event_name to class
         """
 
-        def fn(event, test_unit, name):
+        def func(event, test_unit, name):
             """This function sets events list will required value"""
             self.events[event_name] = (event, test_unit, name)
-        setattr(self, event_name, fn)
+        setattr(self, event_name, func)
 
     def establish_tcp_connection(self, url, port):
         """
@@ -211,10 +211,8 @@ class Client():
             pass
         elif isinstance(event, h2.events.RequestReceived):
             pass
-
         elif isinstance(event, h2.events.ResponseReceived):
-            logging.info('Got response received')
-
+            pass
         elif isinstance(event, h2.events.SettingsAcknowledged):
             pass
         elif isinstance(event, h2.events.StreamEnded):

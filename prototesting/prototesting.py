@@ -3,9 +3,9 @@
 """ Entry point
 """
 import logging
-
 from os import listdir
 from os.path import dirname, isfile, join, realpath
+
 from jsonparser import jsonparser
 
 logging.basicConfig(level=logging.INFO,
