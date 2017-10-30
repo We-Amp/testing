@@ -5,6 +5,7 @@
 import logging
 import socket
 import threading
+from os.path import dirname, isfile, join, realpath
 
 import h2.connection
 import h2.events
@@ -70,12 +71,36 @@ class Response:
         self.server.send_headers(
             stream_id=self.stream_id, address=self.address, headers=headers_to_send)
 
-    def send_response_body(self, data, end_stream=True):
+    def send_response_body(self, data=None, end_stream=True):
         """
         Sends response body to client
         """
-        self.server.send_body(stream_id=self.stream_id, data=data,
-                              address=self.address, end_stream=end_stream)
+        if data:
+            self.server.send_body(stream_id=self.stream_id, data=data,
+                                  address=self.address, end_stream=end_stream)
+        else:
+            file = "/"
+            for header in self.headers:
+                if header[0] == ':path':
+                    file = header[1]
+            self.server.send_body(stream_id=self.stream_id,
+                                  data=self.read_file(file),
+                                  address=self.address, end_stream=end_stream)
+
+    def read_file(self, filename):
+        """
+        Read file from filesystem
+        """
+        # :TODO (Rakesh) Maybe origin folder can be configurable
+        filepath = join(dirname(realpath(__file__)), "../../origin")
+        filepath = filepath + filename
+
+        if isfile(filepath):
+            with open(filepath) as file:
+                return file.read()
+        else:
+            # :TODO(Rakesh) error handling with response of 404
+            return ""
 
 
 class Server:
