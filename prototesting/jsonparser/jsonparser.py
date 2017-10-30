@@ -78,6 +78,10 @@ class TestUnit:
                     index + 1, cmd, cmds, waitfor_events)
         return waitfor_events
 
+    def handle_execute(self, cmd):
+        """Execute a string given in "execute", can use the objects defined in test """
+        exec(cmd["execute"], self.__dict__)
+
     def handle_expectation(self, cmd):
         """
         Handle Expectations
@@ -142,6 +146,9 @@ class TestUnit:
                             event.wait()
                             logging.debug("Event received: " + cmd["name"])
 
+                    elif cmd["action"] == "execute":
+                        self.handle_execute(cmd)
+
                     elif cmd["action"] == "expect":
                         self.handle_expectation(cmd)
 
@@ -160,6 +167,7 @@ class TestUnit:
                         mod = getattr(self, action[0])
                         logging.debug(dir(mod))
 
+                        # :TODO (Rakesh) Possibly call this function with parameter name and value
                         response = getattr(mod, action[1])(*args)
 
                         if action_response:

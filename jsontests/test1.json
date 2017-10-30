@@ -29,6 +29,10 @@
           "name": "request1response"
         },
         {
+          "action": "execute",
+          "execute": "print(request1)\nprint(\"h2 conn:\",request1.http2_connection)"
+        },
+        {
           "action": "expect",
           "value": "request1response.response_headers.:status",
           "expected": 200,
