@@ -4,7 +4,8 @@
 """
 import logging
 from os import listdir
-from os.path import dirname, isfile, join, realpath
+from os.path import dirname, isfile, join, realpath, isdir
+import sys
 
 from jsonparser import jsonparser
 
@@ -17,6 +18,14 @@ logging.basicConfig(level=logging.INFO,
                     '%(message)s\n')
 
 
+def run_test(filepath):
+    if filepath.lower().endswith('.json'):
+        with open(filepath) as file:
+            fdata = file.read()
+            test_unit = jsonparser.TestUnit(fdata)
+            test_unit.print_output()
+
+
 def main():
     """
     Entry point function to start execution of tests
@@ -27,18 +36,18 @@ def main():
     # 3. Proper error handling
     # 4. Logging with configurable levels
 
-    testfilespath = join(dirname(realpath(__file__)), "../jsontests")
+    files = [join(dirname(realpath(__file__)), "../jsontests")]
+    if len(sys.argv) > 1:
+        files = sys.argv[1:]
 
-    testfiles = [join(testfilespath, f) for f in listdir(
-        testfilespath) if isfile(join(testfilespath, f))]
-
-    for file in testfiles:
-        if file.lower().endswith('.json'):
-            with open(file) as f:
-                fdata = f.read()
-                test_unit = jsonparser.TestUnit(fdata)
-                test_unit.print_output()
-
+    for testfilespath in files:
+        if isdir(testfilespath):
+            testfiles = [join(testfilespath, file) for file in listdir(
+                testfilespath) if isfile(join(testfilespath, file))]
+            for file in testfiles:
+                run_test(file)
+        else:
+            run_test(testfilespath)
 
 if __name__ == "__main__":
     main()
