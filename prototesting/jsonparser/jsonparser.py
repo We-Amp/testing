@@ -52,8 +52,12 @@ class TestUnit:
             Handles parallel execution of tests/cmds
         """
         for cmds in cmdslist:
+            if "name" in cmds[0]:
+                name = cmds[0]["name"]
+            else:
+                name = "parallel"
             thread = threading.Thread(
-                target=self.parser, kwargs=dict(cmds=cmds), name=cmds[0]["name"])
+                target=self.parser, kwargs=dict(cmds=cmds), name=name)
             thread.start()
             self.threads.append(thread)
 

@@ -98,6 +98,8 @@ class Client():
         """
         This function establishes a client-side TCP connection.
         """
+        logging.info(url)
+        logging.info(port)
         return socket.create_connection((url, port))
 
     def request(self, url):
@@ -128,8 +130,13 @@ class Client():
         # The TCP, TLS, and HTTP/2 handshakes are now complete. You can enter your
         # main loop now.
 
+        return self
+
+    def send_on_stream(self, url):
         stream_id = self.http2_connection.get_next_available_stream_id()
         logging.debug("stream_id: " + str(stream_id))
+
+        parsed_url = urlparse(url)
 
         self.http2_connection.send_headers(
             stream_id=stream_id,

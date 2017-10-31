@@ -24,8 +24,13 @@
           "name": "request1"
         },
         {
+          "action": "request1.send_on_stream",
+          "url": "https://localhost:8080/test1.html",
+          "name": "stream1"
+        },
+        {
           "action": "waitfor",
-          "event": "request1.ResponseReceived",
+          "event": "stream1.ResponseReceived",
           "name": "request1response"
         },
         {

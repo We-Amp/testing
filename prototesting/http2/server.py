@@ -115,6 +115,8 @@ class Server:
         self.httpconn = {}
         self.tcpsock = {}
         self.events = {}
+        self.waitfor_socket = None
+        self.listen_thread = None
         self.__create_class_methods()
 
     def config(self, config):
@@ -124,21 +126,25 @@ class Server:
         self.port = config.port
         self.address = config.address
 
-    def create_socket(self):
+    def create_socket(self, listen_socket_event):
         """Create a socket which will be listening for incoming connection from client"""
         self.sock = socket.socket()
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.address, self.port))
+        logging.info("Create Socket ")
         self.sock.listen(5)
 
-        logging.debug("TCP socket:" + str(self.sock))
+        logging.info("TCP socket:" + str(self.sock))
 
         while self._should_serve:
-            logging.debug("Waiting for connection")
-
+            logging.info("Waiting for connection")
+            if self.waitfor_socket:
+                self.waitfor_socket.set()
+            listen_socket_event.set()
             try:
                 tcpconn, address = self.sock.accept()
             except socket.error:
+                logging.info("Server listening failed" + str(socket.error.strerror))
                 if self.sock:
                     self.sock.close()
                 return
@@ -309,13 +315,25 @@ class Server:
         self.sock.shutdown(socket.SHUT_RDWR)
         self.sock.close()
 
+
+    def ServerStarted(self, event, unused_test_unit, unused_name):
+        """
+        An custom event for setting server started
+        """
+        self.waitfor_socket = event
+        if self.listen_thread.is_alive():
+            self.waitfor_socket.set()
+
     def start(self, config=None):
         """Entrypoint for starting the server"""
         if config:
             self.config(config)
-        thread = threading.Thread(
-            target=self.create_socket, name="ServerThread")
-        thread.start()
+        logging.info("Listening thread started")
+        listen_socket_event = threading.Event()
+        self.listen_thread = threading.Thread(
+            target=self.create_socket, args=(listen_socket_event,), name="ServerThread")
+        self.listen_thread.start()
+        listen_socket_event.wait()
 
 
 def create():
