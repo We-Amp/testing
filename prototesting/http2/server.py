@@ -242,19 +242,6 @@ class Server:
 
         if class_name in self.events:
             response_list = self.events[class_name]
-            for response_data in response_list:
-                threading_event, test_unit, name, data = response_data
-                path = ""
-                for header in event.headers:
-                    if header[0] == ':path':
-                        path = header[1]
-                logging.info("path:" + path + " data: " + data)
-                if path in data:
-                    setattr(test_unit, name, Response(self, event, address))
-                    logging.info("Setting thread event")
-                    threading_event.set()
-                    self.events[class_name].remove(response_data)
-                    return
 
         # Not sure if these all are needed, special handlin can/should be added
         # on need to basis
@@ -277,11 +264,27 @@ class Server:
             pass
         elif isinstance(event, h2.events.RemoteSettingsChanged):
             pass
+
         elif isinstance(event, h2.events.RequestReceived):
             if __name__ == "__main__":
                 logging.debug(event.headers)
                 self.send_headers(address=address)
                 self.send_body(address=address)
+                return
+
+            for response_data in response_list:
+                threading_event, test_unit, name, data = response_data
+                path = ""
+                for header in event.headers:
+                    if header[0] == ':path':
+                        path = header[1]
+                logging.info("path:" + path + " data: " + data)
+                if path in data:
+                    setattr(test_unit, name, Response(self, event, address))
+                    logging.info("Setting thread event")
+                    threading_event.set()
+                    self.events[class_name].remove(response_data)
+                    return
 
         elif isinstance(event, h2.events.ResponseReceived):
             pass
