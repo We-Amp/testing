@@ -24,9 +24,15 @@
           "name": "request1"
         },
         {
+          "action": "request1.send_on_stream",
+          "url": "https://localhost:8080/test1.html",
+          "name": "stream1"
+        },
+        {
           "action": "waitfor",
-          "event": "request1.ResponseReceived",
-          "name": "request1response"
+          "event": "stream1.ResponseReceived",
+          "name": "request1response",
+          "data": ""
         },
         {
           "action": "execute",
@@ -43,13 +49,17 @@
           "value": "request1response.response_headers.server",
           "expected": "test-h2-server",
           "Description": "Server name should match"
+        },
+        {
+          "action":"request1.stop"
         }
       ],
       [
         {
           "action": "waitfor",
           "event": "h2s.RequestReceived",
-          "name": "h2srequest1"
+          "name": "h2srequest1",
+          "data": "https://localhost:8080/test1.html"
         },
         {
           "action": "expect",
