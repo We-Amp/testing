@@ -67,6 +67,7 @@ class Client():
         self.connection = None
         self.tls_connection = None
         self.http2_connection = None
+        self.thread = None
         self.events = {}
         self.__create_class_methods()
 
@@ -89,9 +90,9 @@ class Client():
         Add a method with name event_name to class
         """
 
-        def func(event, test_unit, name):
+        def func(event, test_unit, name, data):
             """This function sets events list will required value"""
-            self.events[event_name] = (event, test_unit, name)
+            self.events[event_name] = (event, test_unit, name, data)
         setattr(self, event_name, func)
 
     def establish_tcp_connection(self, url, port):
@@ -156,9 +157,12 @@ class Client():
         if data_to_send:
             self.tls_connection.sendall(data_to_send)
 
-        thread = threading.Thread(
-            target=self.receive_content, name="ClientThread")
-        thread.start()
+        if self.thread:
+            pass
+        else:
+            self.thread = threading.Thread(
+                target=self.receive_content, name="ClientThread")
+            self.thread.start()
 
         return self
 
@@ -169,16 +173,21 @@ class Client():
         """
 
         while True:
-            data = self.tls_connection.recv(65535)
-            logging.debug("\nReceived server raw data : " + str(data))
+            data = None
+            try:
+                data = self.tls_connection.recv(65535)
+                logging.debug("\nReceived server raw data : " + str(data))
+            except socket.error as err:
+                logging.info(err)
+                return
             if not data:
                 logging.info("no response from server")
             events = self.http2_connection.receive_data(data)
             for event in events:
                 logging.info("CLient Event fired: " + event.__class__.__name__)
                 self.handle_event(event)
-                if isinstance(event, h2.events.StreamEnded):
-                    return
+                # if isinstance(event, h2.events.StreamEnded):
+                #     return
 
     def handle_event(self, event):
         """
@@ -189,7 +198,7 @@ class Client():
 
         if class_name in self.events:
             response_data = self.events[class_name]
-            threading_event, test_unit, name = response_data
+            threading_event, test_unit, name, data = response_data
 
             #:TODO(Piyush): send response object instead of event here
             setattr(test_unit, name, Response(event))
@@ -230,6 +239,14 @@ class Client():
             pass
         elif isinstance(event, h2.events.WindowUpdated):
             pass
+    def stop(self):
+        """
+        Stop/Kill client
+        """
+        self.http2_connection.close_connection()
+        self.tls_connection.close()
+        self.connection.close()
+        self.connection.shutdown(socket.SHUT_RDWR)
 
 
 def create():

@@ -51,6 +51,7 @@ class TestUnit:
         """
             Handles parallel execution of tests/cmds
         """
+        parallel_threads = []
         for cmds in cmdslist:
             if "name" in cmds[0]:
                 name = cmds[0]["name"]
@@ -58,8 +59,14 @@ class TestUnit:
                 name = "parallel"
             thread = threading.Thread(
                 target=self.parser, kwargs=dict(cmds=cmds), name=name)
+            logging.info("starting thread: " + name)
             thread.start()
-            self.threads.append(thread)
+            parallel_threads.append(thread)
+
+        for thread in parallel_threads:
+            logging.info("Joining on thread: " + str(thread.getName()))
+            thread.join()
+        logging.info("coming out of parallel")
 
     def handle_waitfor(self, index, cmd, cmds, waitfor_events):
         """
@@ -69,7 +76,7 @@ class TestUnit:
         event_name = cmd["event"].split(".")[1]
         registerforevent = getattr(obj, event_name)
         waitfor_event = threading.Event()
-        registerforevent(waitfor_event, self, cmd["name"])
+        registerforevent(waitfor_event, self, cmd["name"], cmd["data"])
         logging.debug("waitfor setting event, current thread:" +
                       str(threading.get_ident()))
         waitfor_events.append(waitfor_event)

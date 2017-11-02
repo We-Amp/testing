@@ -53,6 +53,7 @@ class Response:
         """
         Sends response headers to client
         """
+        logging.info("Sends response headers to client")
         headers_to_send = headers
         if headers:
             # :TODO(Piyush): parse and restructure headers here
@@ -75,6 +76,7 @@ class Response:
         """
         Sends response body to client
         """
+        logging.info("Sends response body to client")
         if data:
             self.server.send_body(stream_id=self.stream_id, data=data,
                                   address=self.address, end_stream=end_stream)
@@ -144,7 +146,8 @@ class Server:
             try:
                 tcpconn, address = self.sock.accept()
             except socket.error:
-                logging.info("Server listening failed" + str(socket.error.strerror))
+                logging.info("Server listening failed" +
+                             str(socket.error.strerror))
                 if self.sock:
                     self.sock.close()
                 return
@@ -225,6 +228,9 @@ class Server:
             for event in events:
                 logging.info("Server Event fired: " +
                              event.__class__.__name__)
+                logging.info("Server Event data: " +
+                             str(event))
+
                 self.handle_event(event, address)
 
     def handle_event(self, event, address):
@@ -235,11 +241,20 @@ class Server:
         class_name = event.__class__.__name__
 
         if class_name in self.events:
-            response_data = self.events[class_name]
-            threading_event, test_unit, name = response_data
-
-            setattr(test_unit, name, Response(self, event, address))
-            threading_event.set()
+            response_list = self.events[class_name]
+            for response_data in response_list:
+                threading_event, test_unit, name, data = response_data
+                path = ""
+                for header in event.headers:
+                    if header[0] == ':path':
+                        path = header[1]
+                logging.info("path:" + path + " data: " + data)
+                if path in data:
+                    setattr(test_unit, name, Response(self, event, address))
+                    logging.info("Setting thread event")
+                    threading_event.set()
+                    self.events[class_name].remove(response_data)
+                    return
 
         # Not sure if these all are needed, special handlin can/should be added
         # on need to basis
@@ -300,9 +315,12 @@ class Server:
         Add a method with name event_name to class
         """
 
-        def func(event, test_unit, name):
+        def func(event, test_unit, name, data):
             """This function sets events list will required value"""
-            self.events[event_name] = (event, test_unit, name)
+            if event_name not in self.events:
+                self.events[event_name] = [(event, test_unit, name, data)]
+            else:
+                self.events[event_name].append((event, test_unit, name, data))
         setattr(self, event_name, func)
 
     def kill(self):
@@ -315,8 +333,7 @@ class Server:
         self.sock.shutdown(socket.SHUT_RDWR)
         self.sock.close()
 
-
-    def ServerStarted(self, event, unused_test_unit, unused_name):
+    def ServerStarted(self, event, unused_test_unit, unused_name, unused_data):
         """
         An custom event for setting server started
         """
@@ -328,7 +345,6 @@ class Server:
         """Entrypoint for starting the server"""
         if config:
             self.config(config)
-        logging.info("Listening thread started")
         listen_socket_event = threading.Event()
         self.listen_thread = threading.Thread(
             target=self.create_socket, args=(listen_socket_event,), name="ServerThread")
