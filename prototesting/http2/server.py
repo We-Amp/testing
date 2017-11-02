@@ -145,9 +145,10 @@ class Server:
             listen_socket_event.set()
             try:
                 tcpconn, address = self.sock.accept()
-            except socket.error:
-                logging.info("Server listening failed" +
-                             str(socket.error.strerror))
+            except socket.error as err:
+                if not self._should_serve:
+                    logging.info("Server listening failed " +
+                                 err.strerror)
                 if self.sock:
                     self.sock.close()
                 return

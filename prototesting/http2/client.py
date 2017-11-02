@@ -56,18 +56,11 @@ class Response:
     def data(self):
         return self.received_data
 
+class Request:
+    """ Class to handle requests in client"""
 
-class Client():
-    """
-        This Client provides http2 client functionality.
-    """
-
-    def __init__(self):
-        self.context = None
-        self.connection = None
-        self.tls_connection = None
-        self.http2_connection = None
-        self.thread = None
+    def __init__(self, stream_id):
+        self.stream_id = stream_id
         self.events = {}
         self.__create_class_methods()
 
@@ -92,7 +85,55 @@ class Client():
 
         def func(event, test_unit, name, data):
             """This function sets events list will required value"""
-            self.events[event_name] = (event, test_unit, name, data)
+            if event_name not in self.events:
+                self.events[event_name] = [(event, test_unit, name, data)]
+            else:
+                self.events[event_name].append((event, test_unit, name, data))
+
+        setattr(self, event_name, func)
+
+
+class Client():
+    """
+        This Client provides http2 client functionality.
+    """
+
+    def __init__(self):
+        self.context = None
+        self.connection = None
+        self.tls_connection = None
+        self.http2_connection = None
+        self.thread = None
+        self.events = {}
+        self.requests = {}
+        self.__create_class_methods()
+
+    def __create_class_methods(self):
+        """
+            Create functions from list of events such that it sets itself in
+            events list
+        """
+        events_list = ['AlternativeServiceAvailable', 'ChangedSetting', 'ConnectionTerminated',
+                       'DataReceived', 'InformationalResponseReceived', 'PingAcknowledged',
+                       'PriorityUpdated', 'PushedStreamReceived', 'RemoteSettingsChanged',
+                       'RequestReceived', 'ResponseReceived', 'SettingsAcknowledged',
+                       'StreamEnded', 'StreamReset', 'TrailersReceived', 'WindowUpdated']
+
+        for event_name in events_list:
+            self.__add_method(event_name)
+
+    def __add_method(self, event_name):
+        """
+        Add a method with name event_name to class
+        """
+
+        def func(event, test_unit, name, data):
+            """This function sets events list will required value"""
+            if event_name not in self.events:
+                self.events[event_name] = [(event, test_unit, name, data)]
+            else:
+                self.events[event_name].append((event, test_unit, name, data))
+
         setattr(self, event_name, func)
 
     def establish_tcp_connection(self, url, port):
@@ -164,7 +205,9 @@ class Client():
                 target=self.receive_content, name="ClientThread")
             self.thread.start()
 
-        return self
+        request = Request(stream_id)
+        self.requests[stream_id] = request
+        return request
 
     # def receivecontent(self, expected_content, unused_timeout, test_output):
     def receive_content(self):
@@ -182,6 +225,8 @@ class Client():
                 return
             if not data:
                 logging.info("no response from server")
+                # Client conn is closed
+                return
             events = self.http2_connection.receive_data(data)
             for event in events:
                 logging.info("CLient Event fired: " + event.__class__.__name__)
@@ -195,14 +240,27 @@ class Client():
         so that they can be handled async when test specifies it
         """
         class_name = event.__class__.__name__
+        event_list = []
+        try:
+            stream_id = event.stream_id
 
-        if class_name in self.events:
-            response_data = self.events[class_name]
-            threading_event, test_unit, name, data = response_data
+            if stream_id in self.requests:
+                request = self.requests[stream_id]
 
-            #:TODO(Piyush): send response object instead of event here
-            setattr(test_unit, name, Response(event))
-            threading_event.set()
+                event_list = request.events
+
+
+        except AttributeError:
+            # No stream id indicates event not related to particular stream
+            event_list = self.events
+
+        if class_name in event_list:
+            response_list = event_list[class_name]
+            for response_data in response_list:
+                threading_event, test_unit, name, unused_data = response_data
+
+                setattr(test_unit, name, Response(event))
+                threading_event.set()
 
         # Not sure if these all are needed, special handlin can/should be added
         # on need to basis
@@ -239,6 +297,7 @@ class Client():
             pass
         elif isinstance(event, h2.events.WindowUpdated):
             pass
+
     def stop(self):
         """
         Stop/Kill client
@@ -246,7 +305,6 @@ class Client():
         self.http2_connection.close_connection()
         self.tls_connection.close()
         self.connection.close()
-        self.connection.shutdown(socket.SHUT_RDWR)
 
 
 def create():
