@@ -74,9 +74,11 @@ class TestUnit:
         """
         obj = getattr(self, cmd["event"].split(".")[0])
         event_name = cmd["event"].split(".")[1]
+        timeout = int(cmd.get("timeout", 20))
+        logging.info("timeout is " + str(timeout))
         registerforevent = getattr(obj, event_name)
-        waitfor_event = threading.Event()
-        registerforevent(waitfor_event, self, cmd["name"], cmd["data"])
+        waitfor_event = (threading.Event(), timeout)
+        registerforevent(waitfor_event[0], self, cmd["name"], cmd["data"])
         logging.debug("waitfor setting event, current thread:" +
                       str(threading.get_ident()))
         waitfor_events.append(waitfor_event)
@@ -152,9 +154,16 @@ class TestUnit:
                         waitfor_events = []
                         waitfor_events = self.handle_waitfor(
                             index, cmd, cmds, waitfor_events)
-                        for event in waitfor_events:
-                            logging.debug("Waiting on event: " + cmd["name"])
-                            event.wait()
+                        for event, timeout in waitfor_events:
+                            logging.info("Waiting on event: " +
+                                         cmd["name"] + "timeout: " + str(timeout))
+                            success = event.wait(timeout)
+
+                            if not success:
+                                # Returning as something timed out
+                                # :TODO(piyush) Add graceful error handling
+                                return
+
                             logging.debug("Event received: " + cmd["name"])
 
                     elif cmd["action"] == "execute":

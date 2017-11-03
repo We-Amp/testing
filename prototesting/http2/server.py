@@ -153,7 +153,7 @@ class Server:
                     self.sock.close()
                 return
 
-            logging.info("Socket Created at " + str(address))
+            logging.info("Socket Connected to client at " + str(address))
             # :TODO(Piyush): Create a new object for storing connections
             logging.debug("TCP connection:" + str(tcpconn))
 
@@ -229,7 +229,7 @@ class Server:
             for event in events:
                 logging.info("Server Event fired: " +
                              event.__class__.__name__)
-                logging.info("Server Event data: " +
+                logging.debug("Server Event data: " +
                              str(event))
 
                 self.handle_event(event, address)
