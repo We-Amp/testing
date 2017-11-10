@@ -23,7 +23,7 @@ def run_test(filepath):
         with open(filepath) as file:
             fdata = file.read()
             test_unit = jsonparser.TestUnit(fdata)
-            test_unit.print_output()
+            return test_unit
 
 
 def main():
@@ -40,14 +40,30 @@ def main():
     if len(sys.argv) > 1:
         files = sys.argv[1:]
 
+    test_unit_list = []
     for testfilespath in files:
         if isdir(testfilespath):
             testfiles = [join(testfilespath, file) for file in listdir(
                 testfilespath) if isfile(join(testfilespath, file))]
             for file in testfiles:
-                run_test(file)
+                test_unit = run_test(file)
+                test_unit_list.append(test_unit)
         else:
-            run_test(testfilespath)
+            test_unit = run_test(testfilespath)
+            test_unit_list.append(test_unit)
+
+    print("=" * 50)
+    print(" " * 15, "Test Ouptut")
+    print("=" * 50)
+    for test_unit in test_unit_list:
+        print("=" * 50)
+        test_unit.print_output()
+        print("=" * 50)
+
+    print("=" * 50)
+    print(" " * 15, "Test End")
+    print("=" * 50)
+
 
 if __name__ == "__main__":
     main()
