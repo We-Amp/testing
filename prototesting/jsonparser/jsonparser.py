@@ -204,9 +204,6 @@ class TestUnit:
             Print Test output
         """
         # print output
-        print("=" * 25)
-        print("Test Ouptut")
-        print("=" * 25)
         print("Test: ", self.name)
         print("Test Description:", self.description)
         print("Expectations:")
@@ -216,9 +213,6 @@ class TestUnit:
                     print("\t" + expect + ": " + output)
             else:
                 print("Something went wrong")
-        print("=" * 25)
-        print("Test End")
-        print("=" * 25)
 
 
 if __name__ == "__main__":
