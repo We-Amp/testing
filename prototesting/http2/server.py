@@ -33,7 +33,12 @@ class Response:
         except AttributeError:
             pass
 
-        self.stream_id = event.stream_id
+        try:
+            self.stream_id = event.stream_id
+        except AttributeError:
+            pass
+
+        self.type = event.__class__.__name__
 
     def request_headers(self, field):
         """
@@ -119,6 +124,7 @@ class Server:
         self.events = {}
         self.waitfor_socket = None
         self.listen_thread = None
+        self.received_events = {}
         self.__create_class_methods()
 
     def config(self, config):
@@ -240,9 +246,12 @@ class Server:
         so that they can be handled async when test specifies it
         """
         class_name = event.__class__.__name__
+        response_list = []
 
         if class_name in self.events:
             response_list = self.events[class_name]
+
+        response = Response(self, event, address)
 
         # Not sure if these all are needed, special handlin can/should be added
         # on need to basis
@@ -281,7 +290,7 @@ class Server:
                         path = header[1]
                 logging.info("path:" + path + " data: " + data)
                 if path in data:
-                    setattr(test_unit, name, Response(self, event, address))
+                    setattr(test_unit, name, response)
                     logging.info("Setting thread event")
                     threading_event.set()
                     self.events[class_name].remove(response_data)
@@ -299,6 +308,14 @@ class Server:
             pass
         elif isinstance(event, h2.events.WindowUpdated):
             pass
+
+        # Add all events into received events if not handled above
+        logging.info("Adding to received events: " + class_name)
+        if class_name not in self.received_events:
+            self.received_events[class_name] = []
+        self.received_events[class_name].append(response)
+        return
+
 
     def __create_class_methods(self):
         """
@@ -321,6 +338,21 @@ class Server:
 
         def func(event, test_unit, name, data):
             """This function sets events list will required value"""
+            if event_name in self.received_events:
+                for response in self.received_events[event_name]:
+                    if response.type == "RequestReceived":
+                        logging.info("Type is RequestReceived")
+                        path = ""
+                        for header in response.headers:
+                            if ':path' in header[0]:
+                                path = header[1]
+                                if path in data:
+                                    setattr(test_unit, name, response)
+                                    logging.info("Setting thread event for" + response.type)
+                                    event.set()
+                                    self.received_events[event_name].remove(response)
+                                    return
+
             if event_name not in self.events:
                 self.events[event_name] = [(event, test_unit, name, data)]
             else:

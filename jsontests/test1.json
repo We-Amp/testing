@@ -35,6 +35,12 @@
           "data": ""
         },
         {
+          "action": "waitfor",
+          "event": "stream1.StreamEnded",
+          "name": "request1responsestream",
+          "data": ""
+        },
+        {
           "action": "execute",
           "execute": "print(request1);print('h2 conn:',request1.http2_connection)"
         },

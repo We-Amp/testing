@@ -117,6 +117,12 @@
                 "value": "request1response.response_headers.server",
                 "expected": "test-h2-server",
                 "Description": "Server name should match"
+              },
+              {
+                "action": "waitfor",
+                "event": "stream1.StreamEnded",
+                "name": "request1responsestreamend",
+                "data": ""
               }
             ],
             [
@@ -142,6 +148,12 @@
                 "value": "request2response.response_headers.server",
                 "expected": "test-h2-server",
                 "Description": "Server name should match"
+              },
+              {
+                "action": "waitfor",
+                "event": "stream2.StreamEnded",
+                "name": "request2responsestreamend",
+                "data": ""
               }
             ]
           ]

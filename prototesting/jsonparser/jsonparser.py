@@ -68,28 +68,21 @@ class TestUnit:
             thread.join()
         logging.info("coming out of parallel")
 
-    def handle_waitfor(self, index, cmd, cmds, waitfor_events):
+    def handle_waitfor(self, cmd):
         """
             Handle waitfor command
         """
         obj = getattr(self, cmd["event"].split(".")[0])
         event_name = cmd["event"].split(".")[1]
         timeout = int(cmd.get("timeout", 20))
-        logging.info("timeout is " + str(timeout))
+        logging.debug("Setting timeout: " + str(timeout))
         registerforevent = getattr(obj, event_name)
         waitfor_event = (threading.Event(), timeout)
         registerforevent(waitfor_event[0], self, cmd["name"], cmd["data"])
         logging.debug("waitfor setting event, current thread:" +
                       str(threading.get_ident()))
-        waitfor_events.append(waitfor_event)
 
-        # check if next cmd is also waitfor
-        cmd = cmds[index + 1]
-        if "action" in cmd:
-            if cmd["action"] == "waitfor":
-                waitfor_events = self.handle_waitfor(
-                    index + 1, cmd, cmds, waitfor_events)
-        return waitfor_events
+        return waitfor_event
 
     def handle_execute(self, cmd):
         """Execute a string given in "execute", can use the objects defined in test """
@@ -151,20 +144,19 @@ class TestUnit:
                     elif cmd["action"] == "waitfor":
                         logging.debug(
                             "waitfor action, current thread:" + str(threading.get_ident()))
-                        waitfor_events = []
-                        waitfor_events = self.handle_waitfor(
-                            index, cmd, cmds, waitfor_events)
-                        for event, timeout in waitfor_events:
-                            logging.info("Waiting on event: " +
-                                         cmd["name"] + "timeout: " + str(timeout))
-                            success = event.wait(timeout)
+                        waitfor_event = self.handle_waitfor(cmd)
+                        event, timeout = waitfor_event
+                        logging.info("Waiting on event: " +
+                                         cmd["name"] + ", will timeout in : " + str(timeout))
+                        success = event.wait(timeout)
 
-                            if not success:
-                                # Returning as something timed out
-                                # :TODO(piyush) Add graceful error handling
-                                return
+                        if not success:
+                            logging.debug("Event timedout: " + cmd["name"])
+                            # Returning as something timed out
+                            # :TODO(piyush) Add graceful error handling
+                            return
 
-                            logging.debug("Event received: " + cmd["name"])
+                        logging.debug("Event received: " + cmd["name"])
 
                     elif cmd["action"] == "execute":
                         self.handle_execute(cmd)

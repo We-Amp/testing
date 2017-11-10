@@ -34,19 +34,22 @@ class Response:
     """
 
     def __init__(self, event):
+        self.type = event.__class__.__name__
+
         try:
             self.received_data = event.data
-
         except AttributeError:
             pass
 
         try:
             self.headers = event.headers
-
         except AttributeError:
             pass
 
-        self.stream_id = event.stream_id
+        try:
+            self.stream_id = event.stream_id
+        except AttributeError:
+            pass
 
     def response_headers(self, field):
         for value in self.headers:
@@ -62,6 +65,7 @@ class Request:
     def __init__(self, stream_id):
         self.stream_id = stream_id
         self.events = {}
+        self.received_events = {}
         self.__create_class_methods()
 
     def __create_class_methods(self):
@@ -85,6 +89,18 @@ class Request:
 
         def func(event, test_unit, name, data):
             """This function sets events list will required value"""
+
+            if event_name in self.received_events:
+                for response in self.received_events[event_name]:
+                    if event_name is "StreamEnded":
+                        if response.stream_id != self.stream_id:
+                            break
+                    setattr(test_unit, name, response)
+                    logging.info("Setting Event: " + response.type)
+                    event.set()
+                    self.received_events[event_name].remove(response)
+                    return
+
             if event_name not in self.events:
                 self.events[event_name] = [(event, test_unit, name, data)]
             else:
@@ -92,6 +108,21 @@ class Request:
 
         setattr(self, event_name, func)
 
+
+    def add_received_events(self, response):
+        """
+        Cache received events
+        """
+        logging.info("Cache received events:" + response.type)
+        if response.type in self.events:
+            for event_data in self.events[response.type]:
+                threading_event, test_unit, name, unused_data = event_data
+                setattr(test_unit, name, response)
+                threading_event.set()
+                return
+        if response.type not in self.received_events:
+            self.received_events[response.type] = []
+        self.received_events[response.type].append(response)
 
 class Client():
     """
@@ -106,6 +137,7 @@ class Client():
         self.thread = None
         self.events = {}
         self.requests = {}
+        self.received_events = {}
         self.__create_class_methods()
 
     def __create_class_methods(self):
@@ -129,6 +161,13 @@ class Client():
 
         def func(event, test_unit, name, data):
             """This function sets events list will required value"""
+            for response in self.received_events[event_name]:
+                setattr(test_unit, name, response)
+                logging.info("Event found in received list")
+                event.set()
+                self.received_events[event_name].remove(response)
+                return
+
             if event_name not in self.events:
                 self.events[event_name] = [(event, test_unit, name, data)]
             else:
@@ -241,6 +280,7 @@ class Client():
         """
         class_name = event.__class__.__name__
         event_list = []
+        request = None
         try:
             stream_id = event.stream_id
 
@@ -261,6 +301,14 @@ class Client():
 
                 setattr(test_unit, name, Response(event))
                 threading_event.set()
+        else:
+            response = Response(event)
+            logging.info("Adding to received events")
+            if class_name not in self.received_events:
+                self.received_events[class_name] = []
+            self.received_events[class_name].append(response)
+            if request:
+                request.add_received_events(response)
 
         # Not sure if these all are needed, special handlin can/should be added
         # on need to basis
