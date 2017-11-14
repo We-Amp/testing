@@ -56,6 +56,7 @@ class Response:
     def data(self):
         return self.received_data
 
+
 class Request:
     """ Class to handle requests in client"""
 
@@ -248,7 +249,6 @@ class Client():
                 request = self.requests[stream_id]
 
                 event_list = request.events
-
 
         except AttributeError:
             # No stream id indicates event not related to particular stream
