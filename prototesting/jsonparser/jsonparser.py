@@ -108,6 +108,9 @@ class TestUnit:
                 output["status"] = "passed"
             else:
                 output["status"] = "failed"
+                output["expected"] = str(cmd["expected"])
+                output["got"] = str(result)
+
             self.expectations.append(output)
         else:
             for action_item in cmd:
