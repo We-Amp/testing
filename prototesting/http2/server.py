@@ -12,6 +12,7 @@ import h2.events
 
 from http2 import h2utils
 
+from jsonparser import EventProcessor
 
 class Response:
     """
@@ -110,7 +111,7 @@ class Response:
             return ""
 
 
-class Server:
+class Server(EventProcessor):
     """Class Server stores all the information required for starting http2 server"""
 
     def __init__(self):

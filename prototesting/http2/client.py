@@ -22,6 +22,7 @@ import h2.connection
 
 from http2 import h2utils
 
+from jsonparser import EventProcessor
 
 """
     Client class to send client request.
@@ -60,10 +61,12 @@ class Response:
         return self.received_data
 
 
-class Request:
+class Request(EventProcessor):
     """ Class to handle requests in client"""
 
-    def __init__(self, stream_id):
+    def __init__(self, context, stream_id):
+        EventProcessor.__init__(self, context)
+
         self.stream_id = stream_id
         self.events = {}
         self.received_events = {}
@@ -110,28 +113,34 @@ class Request:
         setattr(self, event_name, func)
 
 
-    def add_received_events(self, response):
+    def add_received_events(self, response, event):
         """
         Cache received events
         """
         logging.info("Cache received events:" + response.type)
-        if response.type in self.events:
-            for event_data in self.events[response.type]:
-                threading_event, test_unit, name, unused_data = event_data
-                setattr(test_unit, name, response)
-                threading_event.set()
-                return
-        if response.type not in self.received_events:
-            self.received_events[response.type] = []
-        self.received_events[response.type].append(response)
 
-class Client():
+        def compare_func(unused_compare_event, unused_compare_data):
+            return True
+
+        self.event_received(response, compare_func, event)
+        # if response.type in self.events:
+        #     for event_data in self.events[response.type]:
+        #         threading_event, test_unit, name, unused_data = event_data
+        #         setattr(test_unit, name, response)
+        #         threading_event.set()
+        #         return
+        # if response.type not in self.received_events:
+        #     self.received_events[response.type] = []
+        # self.received_events[response.type].append(response)
+
+class Client(EventProcessor):
     """
         This Client provides http2 client functionality.
     """
 
-    def __init__(self):
-        self.context = None
+    def __init__(self, context):
+        EventProcessor.__init__(self, context)
+        self.sslcontext = None
         self.connection = None
         self.tls_connection = None
         self.http2_connection = None
@@ -139,6 +148,7 @@ class Client():
         self.events = {}
         self.requests = {}
         self.received_events = {}
+        self.context = context
         self.__create_class_methods()
 
     def __create_class_methods(self):
@@ -189,7 +199,7 @@ class Client():
         TODO(Piyush): Add description
         """
         # Step 1: Set up your TLS context.
-        self.context = h2utils.get_http2_ssl_context(type="client")
+        self.sslcontext = h2utils.get_http2_ssl_context(type="client")
 
         parsed_url = urlparse(url)
         url_location = parsed_url.netloc.split(":")
@@ -200,7 +210,7 @@ class Client():
 
         # Step 3: Wrap the connection in TLS and validate that we negotiated HTTP/2
         self.tls_connection = h2utils.negotiate_tls(
-            self.connection, self.context, type="client")
+            self.connection, self.sslcontext, type="client")
 
         # Step 4: Create a client-side H2 connection.
         self.http2_connection = h2.connection.H2Connection()
@@ -245,7 +255,7 @@ class Client():
                 target=self.receive_content, name="ClientThread")
             self.thread.start()
 
-        request = Request(stream_id)
+        request = Request(self.context, stream_id)
         self.requests[stream_id] = request
         return request
 
@@ -279,36 +289,27 @@ class Client():
         handle_events processes each event and then stores them,
         so that they can be handled async when test specifies it
         """
-        class_name = event.__class__.__name__
-        event_list = []
+        # class_name = event.__class__.__name__
+        # event_list = []
         request = None
+        response = Response(event)
         try:
             stream_id = event.stream_id
 
             if stream_id in self.requests:
                 request = self.requests[stream_id]
 
-                event_list = request.events
-
         except AttributeError:
             # No stream id indicates event not related to particular stream
-            event_list = self.events
+            # event_list = self.events
+            request = None
 
-        if class_name in event_list:
-            response_list = event_list[class_name]
-            for response_data in response_list:
-                threading_event, test_unit, name, unused_data = response_data
-
-                setattr(test_unit, name, Response(event))
-                threading_event.set()
+        if request:
+            request.add_received_events(response)
         else:
-            response = Response(event)
-            logging.info("Adding to received events")
-            if class_name not in self.received_events:
-                self.received_events[class_name] = []
-            self.received_events[class_name].append(response)
-            if request:
-                request.add_received_events(response)
+            def compare_func(unused_compare_event, unused_compare_data):
+                return True
+            self.event_received(response, compare_func)
 
         # Not sure if these all are needed, special handlin can/should be added
         # on need to basis
@@ -355,17 +356,17 @@ class Client():
         self.connection.close()
 
 
-def create():
+def create(context):
     """
     Create() => client
     Returns the Client object
     """
-    return Client()
+    return Client(context)
 
 
 def main():
     """Standalone client instance"""
-    client = Client()
+    client = Client({})
     client.request("http://localhost:8080")
 
 

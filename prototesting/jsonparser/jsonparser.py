@@ -9,27 +9,25 @@ import logging
 import threading
 
 
-class Module:
+class EventProcessor:
     """
-        Object corresponds to create statement in json
+    Class which want to register for events or post events needs to derive from this class.
     """
 
-    def __init__(self, mod_name, name):
-        self.module = self.import_module(mod_name)
-        self.instance = self.module.create()
 
-        if name:
-            self.name = name
-        else:
-            self.name = mod_name
+    def __init__(self, context):
+        self.context = context
 
-    def set_name(self, name):
-        """ name of the module specified by "name" key"""
-        self.name = name
-
-    def import_module(self, mod_name):
-        """ imports module spcified in "create" key"""
-        return importlib.import_module(mod_name)
+    def event_received(self, response, compare_func, event):
+        """
+        Subclass should call this function when it receives an event for which test can wait for
+        response, a object on which future calls will be called.
+        compare_func, a function object which will be called to
+                     compare the data from test with received data in event.
+                     compare_func should take two params, event which was received, data mentioned
+                     in test.
+        """
+        self.context.event_received(response, compare_func, event)
 
 
 class TestUnit:
@@ -40,12 +38,15 @@ class TestUnit:
         self.description = None
         self.expectations = []
         self.threads = []
+        self.registered_events = {}
+        self.received_events = {}
         self.parse(json_text)
 
     def create_module(self, mod_name, name):
         """ Imports module named 'mod_name' and adds a attibute to Test object with 'name'"""
-        mod = Module(mod_name, name)
-        setattr(self, name, mod.instance)
+        module = importlib.import_module(mod_name)
+        instance = module.create(self)
+        setattr(self, name, instance)
 
     def handle_parallel(self, cmdslist):
         """
@@ -72,13 +73,14 @@ class TestUnit:
         """
             Handle waitfor command
         """
-        obj = getattr(self, cmd["event"].split(".")[0])
+        # obj = getattr(self, cmd["event"].split(".")[0])
         event_name = cmd["event"].split(".")[1]
         timeout = int(cmd.get("timeout", 20))
         logging.debug("Setting timeout: " + str(timeout))
-        registerforevent = getattr(obj, event_name)
+        # event_func = getattr(obj, event_name)
         waitfor_event = (threading.Event(), timeout)
-        registerforevent(waitfor_event[0], self, cmd["name"], cmd["data"])
+        # registerforevent(waitfor_event[0], self, cmd["name"], cmd["data"])
+        self.register_event(event_name, waitfor_event[0], cmd["name"], cmd["data"])
         logging.debug("waitfor setting event, current thread:" +
                       str(threading.get_ident()))
 
@@ -201,6 +203,45 @@ class TestUnit:
 
         for thread in self.threads:
             thread.join()
+
+    def register_event(self, waitfor_event_name, wait_event, name, data):
+        """
+        Register event,mostly called within parser
+        "waitfor_event_name" is the event name for eg. RequestReceived
+        "wait_event" is the threading event
+        "name" is name of the object returned with the event
+        "data" is data used to match the event with actual object
+        """
+
+        if waitfor_event_name in self.received_events:
+            for event_data in self.received_events[waitfor_event_name]:
+                response, event, compare_func = event_data
+                if compare_func(event, data):
+                    setattr(self, name, response)
+                    wait_event.set()
+                    self.received_events[waitfor_event_name].remove(event_data)
+                    return
+
+        if waitfor_event_name not in self.registered_events:
+            self.registered_events[waitfor_event_name] = []
+        self.registered_events[waitfor_event_name].append((wait_event, name, data))
+
+    def event_received(self, event_name, response, compare_func, event):
+        """
+        Called from modules when event is received
+        """
+        if event_name in self.registered_events:
+            for event_data in self.registered_events[event_name]:
+                wait_event, name, data = event_data
+                if compare_func(event, data):
+                    setattr(self, name, response)
+                    wait_event.set()
+                    self.registered_events[event_name].remove(event_data)
+                    return
+
+        if event_name not in self.received_events:
+            self.received_events[event_name] = []
+        self.received_events[event_name].append((response, event, compare_func))
 
     def print_output(self):
         """
