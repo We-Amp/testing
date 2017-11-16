@@ -252,7 +252,7 @@ class Server(EventProcessor):
 
         compare_func = lambda event, data: True
 
-        # Not sure if these all are needed, special handlin can/should be added
+        # Not sure if these all are needed, special handling can/should be added
         # on need to basis
 
         if isinstance(event, h2.events.AlternativeServiceAvailable):
@@ -281,24 +281,23 @@ class Server(EventProcessor):
                 self.send_body(address=address)
                 return
 
-            # :TODO(Piyush): Add compare_func for this event
+            def func(event, data):
+                """
+                Compare func to executed when wait for is Request received
+                This function will check whether the current request has same path
+                as the request which is to be waited upon
+                """
+                path = ""
+                for header in event.headers:
+                    if header[0] == ':path':
+                        path = header[1]
+                logging.info("path:" + path + " data: " + data)
+                if path in data:
+                    return True
 
-            # for response_data in response_list:
-            #     threading_event, test_unit, name, data = response_data
-            #     path = ""
-            #     for header in event.headers:
-            #         if header[0] == ':path':
-            #             path = header[1]
-            #     logging.info("path:" + path + " data: " + data)
-            #     if path in data:
-            #         setattr(test_unit, name, response)
-            #         logging.info("Setting thread event")
-            #         threading_event.set()
-            #         self.events[class_name].remove(response_data)
-            #         return
+                return False
 
-            # def func(unused_compare_event, unused_compare_data):
-            #     pass
+            compare_func = func
 
         elif isinstance(event, h2.events.ResponseReceived):
             pass
