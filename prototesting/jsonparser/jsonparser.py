@@ -14,11 +14,10 @@ class EventProcessor:
     Class which want to register for events or post events needs to derive from this class.
     """
 
-
     def __init__(self, context):
         self.context = context
 
-    def event_received(self, response, compare_func, event):
+    def event_received(self, event_name, response, compare_func, event):
         """
         Subclass should call this function when it receives an event for which test can wait for
         response, a object on which future calls will be called.
@@ -27,7 +26,7 @@ class EventProcessor:
                      compare_func should take two params, event which was received, data mentioned
                      in test.
         """
-        self.context.event_received(response, compare_func, event)
+        self.context.event_received(event_name, response, compare_func, event)
 
 
 class TestUnit:
@@ -130,7 +129,7 @@ class TestUnit:
         lock = threading.RLock()
         with lock:
 
-            for index, cmd in enumerate(cmds):
+            for unused_index, cmd in enumerate(cmds):
                 print(cmd)
                 if "TestName" in cmd:
                     self.name = cmd["TestName"]

@@ -12,7 +12,7 @@ import h2.events
 
 from http2 import h2utils
 
-from jsonparser import EventProcessor
+from jsonparser.jsonparser import EventProcessor
 
 class Response:
     """
@@ -114,7 +114,9 @@ class Response:
 class Server(EventProcessor):
     """Class Server stores all the information required for starting http2 server"""
 
-    def __init__(self):
+    def __init__(self, context=None):
+        if context:
+            EventProcessor.__init__(self, context)
         self.sock = None
         self._should_serve = True
 
@@ -122,11 +124,7 @@ class Server(EventProcessor):
         self.address = "0.0.0.0"
         self.httpconn = {}
         self.tcpsock = {}
-        self.events = {}
-        self.waitfor_socket = None
         self.listen_thread = None
-        self.received_events = {}
-        self.__create_class_methods()
 
     def config(self, config):
         """
@@ -147,8 +145,11 @@ class Server(EventProcessor):
 
         while self._should_serve:
             logging.info("Waiting for connection")
-            if self.waitfor_socket:
-                self.waitfor_socket.set()
+
+            # Signify the ServerStarted
+            self.event_received("ServerStarted", self,
+                                lambda event, data: True, None)
+
             listen_socket_event.set()
             try:
                 tcpconn, address = self.sock.accept()
@@ -211,9 +212,9 @@ class Server(EventProcessor):
     def handle(self, address, tcpconn):
         """handle something something"""
 
-        context = h2utils.get_http2_ssl_context(type="server")
+        ssl_context = h2utils.get_http2_ssl_context(type="server")
 
-        tcpsock = h2utils.negotiate_tls(tcpconn, context, type="server")
+        tcpsock = h2utils.negotiate_tls(tcpconn, ssl_context, type="server")
         logging.debug("TLS Connection: " + str(tcpsock))
 
         config = h2.config.H2Configuration(client_side=False)
@@ -237,7 +238,7 @@ class Server(EventProcessor):
                 logging.info("Server Event fired: " +
                              event.__class__.__name__)
                 logging.debug("Server Event data: " +
-                             str(event))
+                              str(event))
 
                 self.handle_event(event, address)
 
@@ -246,13 +247,10 @@ class Server(EventProcessor):
         handle_events processes each event and then stores them,
         so that they can be handled async when test specifies it
         """
-        class_name = event.__class__.__name__
-        response_list = []
-
-        if class_name in self.events:
-            response_list = self.events[class_name]
 
         response = Response(self, event, address)
+
+        compare_func = lambda event, data: True
 
         # Not sure if these all are needed, special handlin can/should be added
         # on need to basis
@@ -283,19 +281,24 @@ class Server(EventProcessor):
                 self.send_body(address=address)
                 return
 
-            for response_data in response_list:
-                threading_event, test_unit, name, data = response_data
-                path = ""
-                for header in event.headers:
-                    if header[0] == ':path':
-                        path = header[1]
-                logging.info("path:" + path + " data: " + data)
-                if path in data:
-                    setattr(test_unit, name, response)
-                    logging.info("Setting thread event")
-                    threading_event.set()
-                    self.events[class_name].remove(response_data)
-                    return
+            # :TODO(Piyush): Add compare_func for this event
+
+            # for response_data in response_list:
+            #     threading_event, test_unit, name, data = response_data
+            #     path = ""
+            #     for header in event.headers:
+            #         if header[0] == ':path':
+            #             path = header[1]
+            #     logging.info("path:" + path + " data: " + data)
+            #     if path in data:
+            #         setattr(test_unit, name, response)
+            #         logging.info("Setting thread event")
+            #         threading_event.set()
+            #         self.events[class_name].remove(response_data)
+            #         return
+
+            # def func(unused_compare_event, unused_compare_data):
+            #     pass
 
         elif isinstance(event, h2.events.ResponseReceived):
             pass
@@ -310,55 +313,9 @@ class Server(EventProcessor):
         elif isinstance(event, h2.events.WindowUpdated):
             pass
 
-        # Add all events into received events if not handled above
-        logging.info("Adding to received events: " + class_name)
-        if class_name not in self.received_events:
-            self.received_events[class_name] = []
-        self.received_events[class_name].append(response)
+        event_name = event.__class__.__name__
+        self.event_received(event_name, response, compare_func, event)
         return
-
-
-    def __create_class_methods(self):
-        """
-            Create functions from list of events such that it sets itself in
-            events list
-        """
-        events_list = ['AlternativeServiceAvailable', 'ChangedSetting', 'ConnectionTerminated',
-                       'DataReceived', 'InformationalResponseReceived', 'PingAcknowledged',
-                       'PriorityUpdated', 'PushedStreamReceived', 'RemoteSettingsChanged',
-                       'RequestReceived', 'ResponseReceived', 'SettingsAcknowledged',
-                       'StreamEnded', 'StreamReset', 'TrailersReceived', 'WindowUpdated']
-
-        for event_name in events_list:
-            self.__add_method(event_name)
-
-    def __add_method(self, event_name):
-        """
-        Add a method with name event_name to class
-        """
-
-        def func(event, test_unit, name, data):
-            """This function sets events list will required value"""
-            if event_name in self.received_events:
-                for response in self.received_events[event_name]:
-                    if response.type == "RequestReceived":
-                        logging.info("Type is RequestReceived")
-                        path = ""
-                        for header in response.headers:
-                            if ':path' in header[0]:
-                                path = header[1]
-                                if path in data:
-                                    setattr(test_unit, name, response)
-                                    logging.info("Setting thread event for" + response.type)
-                                    event.set()
-                                    self.received_events[event_name].remove(response)
-                                    return
-
-            if event_name not in self.events:
-                self.events[event_name] = [(event, test_unit, name, data)]
-            else:
-                self.events[event_name].append((event, test_unit, name, data))
-        setattr(self, event_name, func)
 
     def kill(self):
         """Close the serving socket"""
@@ -370,13 +327,6 @@ class Server(EventProcessor):
         self.sock.shutdown(socket.SHUT_RDWR)
         self.sock.close()
 
-    def ServerStarted(self, event, unused_test_unit, unused_name, unused_data):
-        """
-        An custom event for setting server started
-        """
-        self.waitfor_socket = event
-        if self.listen_thread.is_alive():
-            self.waitfor_socket.set()
 
     def start(self, config=None):
         """Entrypoint for starting the server"""
@@ -389,12 +339,12 @@ class Server(EventProcessor):
         listen_socket_event.wait()
 
 
-def create():
+def create(context):
     """
     Create() => server
     Returns the Server object
     """
-    server = Server()
+    server = Server(context)
     return server
 
 

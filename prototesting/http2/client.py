@@ -22,7 +22,7 @@ import h2.connection
 
 from http2 import h2utils
 
-from jsonparser import EventProcessor
+from jsonparser.jsonparser import EventProcessor
 
 """
     Client class to send client request.
@@ -68,50 +68,6 @@ class Request(EventProcessor):
         EventProcessor.__init__(self, context)
 
         self.stream_id = stream_id
-        self.events = {}
-        self.received_events = {}
-        self.__create_class_methods()
-
-    def __create_class_methods(self):
-        """
-            Create functions from list of events such that it sets itself in
-            events list
-        """
-        events_list = ['AlternativeServiceAvailable', 'ChangedSetting', 'ConnectionTerminated',
-                       'DataReceived', 'InformationalResponseReceived', 'PingAcknowledged',
-                       'PriorityUpdated', 'PushedStreamReceived', 'RemoteSettingsChanged',
-                       'RequestReceived', 'ResponseReceived', 'SettingsAcknowledged',
-                       'StreamEnded', 'StreamReset', 'TrailersReceived', 'WindowUpdated']
-
-        for event_name in events_list:
-            self.__add_method(event_name)
-
-    def __add_method(self, event_name):
-        """
-        Add a method with name event_name to class
-        """
-
-        def func(event, test_unit, name, data):
-            """This function sets events list will required value"""
-
-            if event_name in self.received_events:
-                for response in self.received_events[event_name]:
-                    if event_name is "StreamEnded":
-                        if response.stream_id != self.stream_id:
-                            break
-                    setattr(test_unit, name, response)
-                    logging.info("Setting Event: " + response.type)
-                    event.set()
-                    self.received_events[event_name].remove(response)
-                    return
-
-            if event_name not in self.events:
-                self.events[event_name] = [(event, test_unit, name, data)]
-            else:
-                self.events[event_name].append((event, test_unit, name, data))
-
-        setattr(self, event_name, func)
-
 
     def add_received_events(self, response, event):
         """
@@ -119,72 +75,26 @@ class Request(EventProcessor):
         """
         logging.info("Cache received events:" + response.type)
 
-        def compare_func(unused_compare_event, unused_compare_data):
-            return True
+        event_name = event.__class__.__name__
+        self.event_received(event_name, response,
+                            lambda event, data: True, event)
 
-        self.event_received(response, compare_func, event)
-        # if response.type in self.events:
-        #     for event_data in self.events[response.type]:
-        #         threading_event, test_unit, name, unused_data = event_data
-        #         setattr(test_unit, name, response)
-        #         threading_event.set()
-        #         return
-        # if response.type not in self.received_events:
-        #     self.received_events[response.type] = []
-        # self.received_events[response.type].append(response)
 
 class Client(EventProcessor):
     """
         This Client provides http2 client functionality.
     """
 
-    def __init__(self, context):
-        EventProcessor.__init__(self, context)
+    def __init__(self, context=None):
+        if context:
+            EventProcessor.__init__(self, context)
         self.sslcontext = None
         self.connection = None
         self.tls_connection = None
         self.http2_connection = None
         self.thread = None
-        self.events = {}
         self.requests = {}
-        self.received_events = {}
         self.context = context
-        self.__create_class_methods()
-
-    def __create_class_methods(self):
-        """
-            Create functions from list of events such that it sets itself in
-            events list
-        """
-        events_list = ['AlternativeServiceAvailable', 'ChangedSetting', 'ConnectionTerminated',
-                       'DataReceived', 'InformationalResponseReceived', 'PingAcknowledged',
-                       'PriorityUpdated', 'PushedStreamReceived', 'RemoteSettingsChanged',
-                       'RequestReceived', 'ResponseReceived', 'SettingsAcknowledged',
-                       'StreamEnded', 'StreamReset', 'TrailersReceived', 'WindowUpdated']
-
-        for event_name in events_list:
-            self.__add_method(event_name)
-
-    def __add_method(self, event_name):
-        """
-        Add a method with name event_name to class
-        """
-
-        def func(event, test_unit, name, data):
-            """This function sets events list will required value"""
-            for response in self.received_events[event_name]:
-                setattr(test_unit, name, response)
-                logging.info("Event found in received list")
-                event.set()
-                self.received_events[event_name].remove(response)
-                return
-
-            if event_name not in self.events:
-                self.events[event_name] = [(event, test_unit, name, data)]
-            else:
-                self.events[event_name].append((event, test_unit, name, data))
-
-        setattr(self, event_name, func)
 
     def establish_tcp_connection(self, url, port):
         """
@@ -289,8 +199,6 @@ class Client(EventProcessor):
         handle_events processes each event and then stores them,
         so that they can be handled async when test specifies it
         """
-        # class_name = event.__class__.__name__
-        # event_list = []
         request = None
         response = Response(event)
         try:
@@ -305,11 +213,11 @@ class Client(EventProcessor):
             request = None
 
         if request:
-            request.add_received_events(response)
+            request.add_received_events(response, event)
         else:
-            def compare_func(unused_compare_event, unused_compare_data):
-                return True
-            self.event_received(response, compare_func)
+            event_name = event.__class__.__name__
+            self.event_received(event_name,
+                                response, lambda event, data: True, event)
 
         # Not sure if these all are needed, special handlin can/should be added
         # on need to basis
@@ -366,7 +274,7 @@ def create(context):
 
 def main():
     """Standalone client instance"""
-    client = Client({})
+    client = Client()
     client.request("http://localhost:8080")
 
 
