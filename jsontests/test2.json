@@ -1,0 +1,170 @@
+[
+  {
+    "TestName": "Read from origin",
+    "Description": "This test reads html file from file system"
+  },
+  {
+    "create": "http2.server",
+    "name": "h2s"
+  },
+  {
+    "action": "h2s.start"
+  },
+  {
+    "create": "http2.client",
+    "name": "h2c"
+  },
+  {
+    "action": "waitfor",
+    "event": "h2s.ServerStarted",
+    "name": "serverstarted",
+    "data": ""
+  },
+  {
+    "action": "parallel",
+    "list": [
+      [
+        {
+          "action": "parallel",
+          "list": [
+            [
+              {
+                "action": "waitfor",
+                "event": "h2s.RequestReceived",
+                "name": "h2srequest1",
+                "data": "https://localhost:8080/simple.html"
+              },
+              {
+                "action": "expect",
+                "value": "h2srequest1.request_headers.:scheme",
+                "expected": "https",
+                "Description": "Scheme should be https"
+              },
+              {
+                "action": "h2srequest1.send_response_headers",
+                "name": "responseHeader1",
+                "headers": {
+                  ":status": 200,
+                  "server": "test-h2-server",
+                  "content-type": "text/plain"
+                }
+              },
+              {
+                "action": "h2srequest1.send_response_body",
+                "name": "responseBody1"
+              }
+            ],
+            [
+              {
+                "action": "waitfor",
+                "event": "h2s.RequestReceived",
+                "name": "h2srequest2",
+                "data": "https://localhost:8080/test1.html"
+              },
+              {
+                "action": "expect",
+                "value": "h2srequest2.request_headers.:scheme",
+                "expected": "https",
+                "Description": "Scheme should be https"
+              },
+              {
+                "action": "h2srequest2.send_response_headers",
+                "name": "responseHeader1",
+                "headers": {
+                  ":status": 200,
+                  "server": "test-h2-server",
+                  "content-type": "text/plain"
+                }
+              },
+              {
+                "action": "h2srequest2.send_response_body",
+                "name": "responseBody1",
+                "data": "This is test1"
+              }
+            ]
+          ]
+        }
+      ],
+      [
+        {
+          "action": "h2c.request",
+          "url": "https://localhost:8080",
+          "name": "request1"
+        },
+        {
+          "action": "parallel",
+          "list": [
+            [
+              {
+                "action": "request1.send_on_stream",
+                "url": "https://localhost:8080/simple.html",
+                "name": "stream1"
+              },
+              {
+                "action": "waitfor",
+                "event": "stream1.ResponseReceived",
+                "name": "request1response",
+                "data": ""
+              },
+              {
+                "action": "expect",
+                "value": "request1response.response_headers.:status",
+                "expected": 200,
+                "Description": "Status should be 200 OK"
+              },
+              {
+                "action": "expect",
+                "value": "request1response.response_headers.server",
+                "expected": "test-h2-server",
+                "Description": "Server name should match"
+              },
+              {
+                "action": "waitfor",
+                "event": "stream1.StreamEnded",
+                "name": "request1responsestreamend",
+                "data": ""
+              }
+            ],
+            [
+              {
+                "action": "request1.send_on_stream",
+                "url": "https://localhost:8080/test1.html",
+                "name": "stream2"
+              },
+              {
+                "action": "waitfor",
+                "event": "stream2.ResponseReceived",
+                "name": "request2response",
+                "data": ""
+              },
+              {
+                "action": "expect",
+                "value": "request2response.response_headers.:status",
+                "expected": 200,
+                "Description": "Status should be 200 OK"
+              },
+              {
+                "action": "expect",
+                "value": "request2response.response_headers.server",
+                "expected": "test-h2-server",
+                "Description": "Server name should match"
+              },
+              {
+                "action": "waitfor",
+                "event": "stream2.StreamEnded",
+                "name": "request2responsestreamend",
+                "data": ""
+              }
+            ]
+          ]
+        }
+      ]
+    ]
+  },
+  {
+    "action": "request1.stop"
+  },
+  {
+    "action": "h2s.kill"
+  }
+]

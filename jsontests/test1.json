@@ -1,0 +1,96 @@
+[
+  {
+    "TestName": "Client - Server",
+    "Description": "This test creates an client and server"
+  },
+  {
+    "create": "http2.server",
+    "name": "h2s"
+  },
+  {
+    "action": "h2s.start"
+  },
+  {
+    "create": "http2.client",
+    "name": "h2c"
+  },
+  {
+    "action": "parallel",
+    "list": [
+      [
+        {
+          "action": "h2c.request",
+          "url": "https://localhost:8080/test1.html",
+          "name": "request1"
+        },
+        {
+          "action": "request1.send_on_stream",
+          "url": "https://localhost:8080/test1.html",
+          "name": "stream1"
+        },
+        {
+          "action": "waitfor",
+          "event": "stream1.ResponseReceived",
+          "name": "request1response",
+          "data": ""
+        },
+        {
+          "action": "waitfor",
+          "event": "stream1.StreamEnded",
+          "name": "request1responsestream",
+          "data": ""
+        },
+        {
+          "action": "execute",
+          "execute": "print(request1);print('h2 conn:',request1.http2_connection)"
+        },
+        {
+          "action": "expect",
+          "value": "request1response.response_headers.:status",
+          "expected": 200,
+          "Description": "Status should be 200 OK"
+        },
+        {
+          "action": "expect",
+          "value": "request1response.response_headers.server",
+          "expected": "test-h2-server",
+          "Description": "Server name should match"
+        },
+        {
+          "action":"request1.stop"
+        }
+      ],
+      [
+        {
+          "action": "waitfor",
+          "event": "h2s.RequestReceived",
+          "name": "h2srequest1",
+          "data": "https://localhost:8080/test1.html"
+        },
+        {
+          "action": "expect",
+          "value": "h2srequest1.request_headers.:scheme",
+          "expected": "https",
+          "Description": "Scheme should be https"
+        },
+        {
+          "action": "h2srequest1.send_response_headers",
+          "name": "responseHeader1",
+          "headers": {
+            ":status": 200,
+            "server": "test-h2-server",
+            "content-type": "text/plain"
+          }
+        },
+        {
+          "action": "h2srequest1.send_response_body",
+          "data": "This is server",
+          "name": "responseBody1"
+        },
+        {
+          "action": "h2s.kill"
+        }
+      ]
+    ]
+  }
+]
