@@ -1,5 +1,4 @@
 #!/usr/bin/python -tt
-
 """
     JSON Parser which creates the test objects and executes each step
 """
@@ -7,26 +6,7 @@ import importlib
 import json
 import logging
 import threading
-
-
-class EventProcessor:
-    """
-    Class which want to register for events or post events needs to derive from this class.
-    """
-
-    def __init__(self, context):
-        self.context = context
-
-    def event_received(self, event_name, response, compare_func, event):
-        """
-        Subclass should call this function when it receives an event for which test can wait for
-        response, a object on which future calls will be called.
-        compare_func, a function object which will be called to
-                     compare the data from test with received data in event.
-                     compare_func should take two params, event which was received, data mentioned
-                     in test.
-        """
-        self.context.event_received(event_name, response, compare_func, event)
+from externallauncher import launcher
 
 
 class TestUnit:
@@ -79,7 +59,8 @@ class TestUnit:
         # event_func = getattr(obj, event_name)
         waitfor_event = (threading.Event(), timeout)
         # registerforevent(waitfor_event[0], self, cmd["name"], cmd["data"])
-        self.register_event(event_name, waitfor_event[0], cmd["name"], cmd["data"])
+        self.register_event(event_name, waitfor_event[0], cmd["name"],
+                            cmd["data"])
         logging.debug("waitfor setting event, current thread:" +
                       str(threading.get_ident()))
 
@@ -96,8 +77,7 @@ class TestUnit:
         args = []
         output = {"Description": cmd["Description"]}
         expect = cmd["value"].split(".")
-        invalid_action_items = [
-            "action", "value", "Description"]
+        invalid_action_items = ["action", "value", "Description"]
         mod = getattr(self, expect[0])
         if len(expect) > 2:
             args.append(expect[2])
@@ -141,17 +121,32 @@ class TestUnit:
                         mod = getattr(self, cmd["name"])
                         getattr(mod, "config")(cmd["config"])
 
+                if "launch" in cmd:
+                    name = cmd.get("name")
+                    proc_name = cmd.get("launch")
+                    path = cmd.get("path")
+                    # args is list of all command line arguments
+                    args = cmd.get("arguments")
+                    root_access = cmd.get("root_access", False)
+                    password = cmd.get("password")
+                    proc = launcher.launch(proc_name,
+                                           path=path,
+                                           config=args,
+                                           root_access=root_access,
+                                           password=password)
+                    setattr(self, name, proc)
+
                 if "action" in cmd:
                     if cmd["action"] == "parallel":
                         self.handle_parallel(cmd["list"])
 
                     elif cmd["action"] == "waitfor":
-                        logging.debug(
-                            "waitfor action, current thread:" + str(threading.get_ident()))
+                        logging.debug("waitfor action, current thread:" +
+                                      str(threading.get_ident()))
                         waitfor_event = self.handle_waitfor(cmd)
                         event, timeout = waitfor_event
-                        logging.info("Waiting on event: " +
-                                         cmd["name"] + ", will timeout in : " + str(timeout))
+                        logging.info("Waiting on event: " + cmd["name"] +
+                                     ", will timeout in : " + str(timeout))
                         success = event.wait(timeout)
 
                         if not success:
@@ -223,7 +218,8 @@ class TestUnit:
 
         if waitfor_event_name not in self.registered_events:
             self.registered_events[waitfor_event_name] = []
-        self.registered_events[waitfor_event_name].append((wait_event, name, data))
+        self.registered_events[waitfor_event_name].append((wait_event, name,
+                                                           data))
 
     def event_received(self, event_name, response, compare_func, event):
         """
@@ -240,7 +236,8 @@ class TestUnit:
 
         if event_name not in self.received_events:
             self.received_events[event_name] = []
-        self.received_events[event_name].append((response, event, compare_func))
+        self.received_events[event_name].append((response, event,
+                                                 compare_func))
 
     def print_output(self):
         """

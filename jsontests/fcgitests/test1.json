@@ -1,0 +1,63 @@
+[
+  {
+    "TestName": "FCGI client",
+    "Description": "This test creates basic fcgi client and starts fcgi server"
+  },
+  {
+    "launch": "php-fastcgi.sh",
+    "path": "/home/gdb/trafficserver/AtsFastcgi/InterceptCPPAPI/bin/",
+    "arguments": ["start"],
+    "name": "php"
+  },
+  {
+    "launch": "trafficserver",
+    "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
+    "root_access": true,
+    "password": "password",
+    "arguments": [
+      "start"
+    ],
+    "name": "ts"
+  },
+  {
+    "create": "fcgi.client",
+    "name": "fcgi"
+  },
+  {
+    "action": "fcgi.request",
+    "url": "http://localhost:9999/phpInfo.php",
+    "name": "request1"
+  },
+  {
+    "action": "request1.get",
+    "url": "http://localhost:9999/phpInfo.php",
+    "name": "resp1"
+  },
+  {
+    "action": "execute",
+    "execute": "print(resp1);"
+  },
+  {
+    "action": "expect",
+    "value": "resp1.response_headers.:status",
+    "expected": 200,
+    "Description": "Status should be 200 OK"
+  },
+  {
+    "launch": "php-fastcgi.sh",
+    "path": "/home/gdb/trafficserver/AtsFastcgi/InterceptCPPAPI/bin/",
+    "arguments": [
+      "stop"
+    ],
+    "name": "php"
+  },
+  {
+    "launch": "trafficserver",
+    "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
+    "root_access": true,
+    "arguments": [
+      "stop"
+    ],
+    "name": "ts2"
+  }
+]
