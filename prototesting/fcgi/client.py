@@ -56,10 +56,19 @@ class Client(EventProcessor):
         self.conn = HTTPConnection(host, port, secure=secure)
         return self
 
-    def get(self, url):
+    def get(self, url, headers=None):
         parsed_url = urlparse(url)
         logging.info(parsed_url.path)
-        self.conn.request('GET', parsed_url.path)
+        self.conn.request('GET', parsed_url.path, headers=headers)
+        resp = self.conn.get_response()
+        # :TODO(Piyush) Add event to signify reception of event
+        return Response(resp)
+
+    def post(self, url, headers=None, data=""):
+        parsed_url = urlparse(url)
+        logging.info(parsed_url.path)
+        self.conn.request(
+            'POST', parsed_url.path, headers=headers, body=data.encode())
         resp = self.conn.get_response()
         logging.info(dir(resp))
         # :TODO(Piyush) Add event to signify reception of event

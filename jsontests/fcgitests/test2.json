@@ -6,7 +6,9 @@
   {
     "launch": "php-fastcgi.sh",
     "path": "/home/gdb/trafficserver/AtsFastcgi/InterceptCPPAPI/bin/",
-    "arguments": ["start"],
+    "arguments": [
+      "start"
+    ],
     "name": "php"
   },
   {
@@ -25,26 +27,27 @@
   },
   {
     "action": "fcgi.request",
-    "url": "http://localhost:9080/ajaxExample.php",
+    "url": "http://localhost:9080/welcome.php",
     "name": "request1"
   },
   {
-    "action": "request1.get",
-    "url": "http://localhost:9080/ajaxExample.php",
+    "action": "request1.post",
+    "url": "http://localhost:9080/welcome.php",
     "headers": {
-      "Connection": "keep-alive"
+      "Content-Type": "application/x-www-form-urlencoded"
     },
+    "data": "name=abc&email=xyz%40abc.mma",
     "name": "resp1"
-  },
-  {
-    "action": "execute",
-    "execute": "print(resp1);"
   },
   {
     "action": "expect",
     "value": "resp1.response_headers.:status",
     "expected": 200,
     "Description": "Status should be 200 OK"
+  },
+  {
+    "action": "execute",
+    "execute": "print(resp1.received_data);"
   },
   {
     "launch": "php-fastcgi.sh",
