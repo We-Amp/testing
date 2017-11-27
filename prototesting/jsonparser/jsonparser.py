@@ -1,5 +1,4 @@
 #!/usr/bin/python -tt
-
 """
     JSON Parser which creates the test objects and executes each step
 """
@@ -72,14 +71,12 @@ class TestUnit:
         """
             Handle waitfor command
         """
-        # obj = getattr(self, cmd["event"].split(".")[0])
         event_name = cmd["event"].split(".")[1]
         timeout = int(cmd.get("timeout", 20))
         logging.debug("Setting timeout: " + str(timeout))
-        # event_func = getattr(obj, event_name)
         waitfor_event = (threading.Event(), timeout)
-        # registerforevent(waitfor_event[0], self, cmd["name"], cmd["data"])
-        self.register_event(event_name, waitfor_event[0], cmd["name"], cmd["data"])
+        self.register_event(event_name, waitfor_event[0], cmd["name"],
+                            cmd["data"])
         logging.debug("waitfor setting event, current thread:" +
                       str(threading.get_ident()))
 
@@ -96,8 +93,7 @@ class TestUnit:
         args = []
         output = {"Description": cmd["Description"]}
         expect = cmd["value"].split(".")
-        invalid_action_items = [
-            "action", "value", "Description"]
+        invalid_action_items = ["action", "value", "Description"]
         mod = getattr(self, expect[0])
         if len(expect) > 2:
             args.append(expect[2])
@@ -139,19 +135,19 @@ class TestUnit:
                     self.create_module(cmd["create"], cmd["name"])
                     if "config" in cmd:
                         mod = getattr(self, cmd["name"])
-                        getattr(mod, "config")(cmd["config"])
+                        getattr(mod, "config")(config=cmd["config"])
 
                 if "action" in cmd:
                     if cmd["action"] == "parallel":
                         self.handle_parallel(cmd["list"])
 
                     elif cmd["action"] == "waitfor":
-                        logging.debug(
-                            "waitfor action, current thread:" + str(threading.get_ident()))
+                        logging.debug("waitfor action, current thread:" +
+                                      str(threading.get_ident()))
                         waitfor_event = self.handle_waitfor(cmd)
                         event, timeout = waitfor_event
-                        logging.info("Waiting on event: " +
-                                         cmd["name"] + ", will timeout in : " + str(timeout))
+                        logging.info("Waiting on event: " + cmd["name"] +
+                                     ", will timeout in : " + str(timeout))
                         success = event.wait(timeout)
 
                         if not success:
@@ -171,20 +167,20 @@ class TestUnit:
                     else:
                         action = None
                         action_response = None
-                        args = []
+                        args = {}
                         for action_item in cmd:
                             if action_item == "action":
                                 action = cmd["action"].split(".")
                             elif action_item == "name":
                                 action_response = cmd["name"]
                             else:
-                                args.append(cmd[action_item])
+                                args[action_item] = cmd[action_item]
 
                         mod = getattr(self, action[0])
                         logging.debug(dir(mod))
 
                         # :TODO (Rakesh) Possibly call this function with parameter name and value
-                        response = getattr(mod, action[1])(*args)
+                        response = getattr(mod, action[1])(**args)
 
                         if action_response:
                             setattr(self, action_response, response)
@@ -223,7 +219,8 @@ class TestUnit:
 
         if waitfor_event_name not in self.registered_events:
             self.registered_events[waitfor_event_name] = []
-        self.registered_events[waitfor_event_name].append((wait_event, name, data))
+        self.registered_events[waitfor_event_name].append((wait_event, name,
+                                                           data))
 
     def event_received(self, event_name, response, compare_func, event):
         """
@@ -240,7 +237,8 @@ class TestUnit:
 
         if event_name not in self.received_events:
             self.received_events[event_name] = []
-        self.received_events[event_name].append((response, event, compare_func))
+        self.received_events[event_name].append((response, event,
+                                                 compare_func))
 
     def print_output(self):
         """
