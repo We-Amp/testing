@@ -52,13 +52,10 @@ class TestUnit:
         """
             Handle waitfor command
         """
-        # obj = getattr(self, cmd["event"].split(".")[0])
         event_name = cmd["event"].split(".")[1]
         timeout = int(cmd.get("timeout", 20))
         logging.debug("Setting timeout: " + str(timeout))
-        # event_func = getattr(obj, event_name)
         waitfor_event = (threading.Event(), timeout)
-        # registerforevent(waitfor_event[0], self, cmd["name"], cmd["data"])
         self.register_event(event_name, waitfor_event[0], cmd["name"],
                             cmd["data"])
         logging.debug("waitfor setting event, current thread:" +
@@ -119,7 +116,7 @@ class TestUnit:
                     self.create_module(cmd["create"], cmd["name"])
                     if "config" in cmd:
                         mod = getattr(self, cmd["name"])
-                        getattr(mod, "config")(cmd["config"])
+                        getattr(mod, "config")(config=cmd["config"])
 
                 if "launch" in cmd:
                     name = cmd.get("name")
@@ -129,11 +126,12 @@ class TestUnit:
                     args = cmd.get("arguments")
                     root_access = cmd.get("root_access", False)
                     password = cmd.get("password")
-                    proc = launcher.launch(proc_name,
-                                           path=path,
-                                           config=args,
-                                           root_access=root_access,
-                                           password=password)
+                    proc = launcher.launch(
+                        proc_name,
+                        path=path,
+                        config=args,
+                        root_access=root_access,
+                        password=password)
                     setattr(self, name, proc)
 
                 if "action" in cmd:
@@ -166,20 +164,20 @@ class TestUnit:
                     else:
                         action = None
                         action_response = None
-                        args = []
+                        args = {}
                         for action_item in cmd:
                             if action_item == "action":
                                 action = cmd["action"].split(".")
                             elif action_item == "name":
                                 action_response = cmd["name"]
                             else:
-                                args.append(cmd[action_item])
+                                args[action_item] = cmd[action_item]
 
                         mod = getattr(self, action[0])
                         logging.debug(dir(mod))
 
                         # :TODO (Rakesh) Possibly call this function with parameter name and value
-                        response = getattr(mod, action[1])(*args)
+                        response = getattr(mod, action[1])(**args)
 
                         if action_response:
                             setattr(self, action_response, response)
