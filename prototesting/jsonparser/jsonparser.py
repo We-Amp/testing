@@ -118,22 +118,6 @@ class TestUnit:
                         mod = getattr(self, cmd["name"])
                         getattr(mod, "config")(config=cmd["config"])
 
-                if "launch" in cmd:
-                    name = cmd.get("name")
-                    proc_name = cmd.get("launch")
-                    path = cmd.get("path")
-                    # args is list of all command line arguments
-                    args = cmd.get("arguments")
-                    root_access = cmd.get("root_access", False)
-                    password = cmd.get("password")
-                    proc = launcher.launch(
-                        proc_name,
-                        path=path,
-                        config=args,
-                        root_access=root_access,
-                        password=password)
-                    setattr(self, name, proc)
-
                 if "action" in cmd:
                     if cmd["action"] == "parallel":
                         self.handle_parallel(cmd["list"])

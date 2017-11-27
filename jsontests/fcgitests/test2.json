@@ -4,22 +4,38 @@
     "Description": "This test creates basic fcgi client and starts fcgi server"
   },
   {
-    "launch": "php-fastcgi.sh",
+    "create": "externallauncher.launcher",
+    "name": "php"
+  },
+  {
+    "action": "php.launch",
+    "cmd": "php-fastcgi.sh",
     "path": "/home/gdb/trafficserver/AtsFastcgi/InterceptCPPAPI/bin/",
     "arguments": [
       "start"
     ],
-    "name": "php"
+    "name": "php1"
   },
   {
-    "launch": "trafficserver",
+    "create": "externallauncher.launcher",
+    "name": "ts"
+  },
+  {
+    "action": "ts.launch",
+    "cmd": "trafficserver",
     "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
     "root_access": true,
     "password": "password",
     "arguments": [
       "start"
     ],
-    "name": "ts"
+    "name": "ts1"
+  },
+  {
+    "action": "waitfor",
+    "event": "ts.ProcessStarted",
+    "name": "tsstarted",
+    "data": ""
   },
   {
     "create": "fcgi.client",
@@ -50,17 +66,20 @@
     "execute": "print(resp1.received_data);"
   },
   {
-    "launch": "php-fastcgi.sh",
+    "action": "php.launch",
+    "cmd": "php-fastcgi.sh",
     "path": "/home/gdb/trafficserver/AtsFastcgi/InterceptCPPAPI/bin/",
     "arguments": [
       "stop"
     ],
-    "name": "php"
+    "name": "php2"
   },
   {
-    "launch": "trafficserver",
+    "action": "ts.launch",
+    "cmd": "trafficserver",
     "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
     "root_access": true,
+    "password": "password",
     "arguments": [
       "stop"
     ],

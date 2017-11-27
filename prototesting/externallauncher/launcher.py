@@ -14,42 +14,44 @@ class Launcher(EventProcessor):
     Launcher class launches external application with configuration and stores its output
     """
 
-    def __init__(self,
-                 name,
-                 config=None,
-                 path=None,
-                 root_access=False,
-                 password=None,
-                 context=None):
+    def __init__(self, context=None):
         EventProcessor.__init__(self, context)
         self.output = None
         self.args_list = []
-        self.root_access = root_access
+        self.root_access = False
         self.password = None
+        self.cmd = None
 
-        # Create args list for subprocess run
-        if self.root_access:
-            self.password = password
-            if "sudo" not in name:
-                self.args_list.append("sudo")
-
-        if path:
-            self.name = join(path, name)
-            logging.info(self.name)
-        else:
-            self.name = name
-
-        self.args_list.append(self.name)
-
-        # Config should be list of relvant switches and options
-        if config:
-            self.args_list += config
-
-    def launch(self):
+    def launch(self,
+               cmd,
+               arguments=None,
+               path=None,
+               root_access=False,
+               password=None):
         """
         Launch the current command and store its output
         """
+        # Create args list for subprocess run
+        self.root_access = root_access
+        if self.root_access:
+            self.password = password
+            if "sudo" not in cmd:
+                self.args_list.append("sudo")
+
+        if path:
+            self.cmd = join(path, cmd)
+            logging.info(self.cmd)
+        else:
+            self.cmd = cmd
+
+        self.args_list.append(self.cmd)
+
+        # Config should be list of relvant switches and options
+        if arguments:
+            self.args_list += arguments
+
         logging.info(self.args_list)
+
         if self.password:
             self.output = subprocess.Popen(
                 self.args_list, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -62,6 +64,10 @@ class Launcher(EventProcessor):
             self.output.communicate(self.password.encode())
 
         # :TODO(Piyush) Handle wait for here based on output status and data
+        self.event_received("ProcessStarted", self, lambda event, data: True,
+                            None)
+
+        return self
 
     def get_output(self):
         """
@@ -77,16 +83,9 @@ class Launcher(EventProcessor):
         self.output.kill()
 
 
-def launch(name,
-           config=None,
-           path=None,
-           root_access=False,
-           password=None,
-           context=None):
+def create(context=None):
     """
-    Start the process with given configuration
+    Create() => launcher
+    Returns the Launcher object
     """
-    launcher = Launcher(name, config, path, root_access, password, context)
-    launcher.launch()
-
-    return launcher
+    return Launcher(context)
