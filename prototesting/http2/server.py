@@ -122,8 +122,7 @@ class Server(EventProcessor):
     """Class Server stores all the information required for starting http2 server"""
 
     def __init__(self, context=None):
-        if context:
-            EventProcessor.__init__(self, context)
+        EventProcessor.__init__(self, context)
         self.sock = None
         self._should_serve = True
 
@@ -145,13 +144,13 @@ class Server(EventProcessor):
         self.sock = socket.socket()
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.address, self.port))
-        logging.info("Create Socket ")
+        logging.debug("Create Socket ")
         self.sock.listen(5)
 
-        logging.info("TCP socket:" + str(self.sock))
+        logging.debug("TCP socket:" + str(self.sock))
 
         while self._should_serve:
-            logging.info("Waiting for connection")
+            logging.debug("Waiting for connection")
 
             # Signify the ServerStarted
             self.event_received("ServerStarted", self,
@@ -162,18 +161,17 @@ class Server(EventProcessor):
                 tcpconn, address = self.sock.accept()
             except socket.error as err:
                 if not self._should_serve:
-                    logging.info("Server listening failed " + err.strerror)
+                    logging.error("Server listening failed " + err.strerror)
                 if self.sock:
                     self.sock.close()
                 return
 
-            logging.info("Socket Connected to client at " + str(address))
+            logging.debug("Socket Connected to client at " + str(address))
 
             # Signify that Client is Connected
             self.event_received("ClientConnected", self,
                                 lambda event, data: True, None)
 
-            # :TODO(Piyush): Create a new object for storing connections
             logging.debug("TCP connection:" + str(tcpconn))
 
             # Handle incoming requests on different thread so as to unblock main server thread
@@ -227,7 +225,7 @@ class Server(EventProcessor):
             tcpsock.sendall(data_to_send)
 
     def handle(self, address, tcpconn):
-        """handle something something"""
+        """handle h2 connection and receive data on given socket"""
 
         ssl_context = h2utils.get_http2_ssl_context(type="server")
 
@@ -252,7 +250,8 @@ class Server(EventProcessor):
                 break
             events = httpconn.receive_data(data)
             for event in events:
-                logging.info("Server Event fired: " + event.__class__.__name__)
+                logging.debug(
+                    "Server Event fired: " + event.__class__.__name__)
                 logging.debug("Server Event data: " + str(event))
 
                 self.handle_event(event, address)
