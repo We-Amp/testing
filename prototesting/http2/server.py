@@ -14,6 +14,7 @@ from http2 import h2utils
 
 from jsonparser.jsonparser import EventProcessor
 
+
 class Response:
     """
     Response holds all data needed to verify the expectations of test
@@ -76,7 +77,9 @@ class Response:
         logging.info(headers_to_send)
 
         self.server.send_headers(
-            stream_id=self.stream_id, address=self.address, headers=headers_to_send)
+            stream_id=self.stream_id,
+            address=self.address,
+            headers=headers_to_send)
 
     def send_response_body(self, data=None, end_stream=True):
         """
@@ -84,16 +87,21 @@ class Response:
         """
         logging.info("Sends response body to client")
         if data:
-            self.server.send_body(stream_id=self.stream_id, data=data,
-                                  address=self.address, end_stream=end_stream)
+            self.server.send_body(
+                stream_id=self.stream_id,
+                data=data,
+                address=self.address,
+                end_stream=end_stream)
         else:
             file = "/"
             for header in self.headers:
                 if header[0] == ':path':
                     file = header[1]
-            self.server.send_body(stream_id=self.stream_id,
-                                  data=self.read_file(file),
-                                  address=self.address, end_stream=end_stream)
+            self.server.send_body(
+                stream_id=self.stream_id,
+                data=self.read_file(file),
+                address=self.address,
+                end_stream=end_stream)
 
     def read_file(self, filename):
         """
@@ -115,8 +123,7 @@ class Server(EventProcessor):
     """Class Server stores all the information required for starting http2 server"""
 
     def __init__(self, context=None):
-        if context:
-            EventProcessor.__init__(self, context)
+        EventProcessor.__init__(self, context)
         self.sock = None
         self._should_serve = True
 
@@ -138,13 +145,13 @@ class Server(EventProcessor):
         self.sock = socket.socket()
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.address, self.port))
-        logging.info("Create Socket ")
+        logging.debug("Create Socket ")
         self.sock.listen(5)
 
-        logging.info("TCP socket:" + str(self.sock))
+        logging.debug("TCP socket:" + str(self.sock))
 
         while self._should_serve:
-            logging.info("Waiting for connection")
+            logging.debug("Waiting for connection")
 
             # Signify the ServerStarted
             self.event_received("ServerStarted", self,
@@ -155,19 +162,23 @@ class Server(EventProcessor):
                 tcpconn, address = self.sock.accept()
             except socket.error as err:
                 if not self._should_serve:
-                    logging.info("Server listening failed " +
-                                 err.strerror)
+                    logging.error("Server listening failed " + err.strerror)
                 if self.sock:
                     self.sock.close()
                 return
 
-            logging.info("Socket Connected to client at " + str(address))
-            # :TODO(Piyush): Create a new object for storing connections
+            logging.debug("Socket Connected to client at " + str(address))
+
             logging.debug("TCP connection:" + str(tcpconn))
 
             # Handle incoming requests on different thread so as to unblock main server thread
             thread = threading.Thread(
-                target=self.handle, args=(address, tcpconn,), name='ListenerThread')
+                target=self.handle,
+                args=(
+                    address,
+                    tcpconn,
+                ),
+                name='ListenerThread')
             thread.start()
 
     def send_headers(self, stream_id=1, address=None, headers=None):
@@ -189,7 +200,11 @@ class Server(EventProcessor):
         if data_to_send:
             tcpsock.sendall(data_to_send)
 
-    def send_body(self, stream_id=1, data="Hello World", address=None, end_stream=True):
+    def send_body(self,
+                  stream_id=1,
+                  data="Hello World",
+                  address=None,
+                  end_stream=True):
         """Send response body to client"""
 
         if not address:
@@ -200,17 +215,14 @@ class Server(EventProcessor):
         tcpsock = self.tcpsock[address]
 
         httpconn.send_data(
-            stream_id=stream_id,
-            data=data.encode(),
-            end_stream=end_stream
-        )
+            stream_id=stream_id, data=data.encode(), end_stream=end_stream)
 
         data_to_send = httpconn.data_to_send()
         if data_to_send:
             tcpsock.sendall(data_to_send)
 
     def handle(self, address, tcpconn):
-        """handle something something"""
+        """handle h2 connection and receive data on given socket"""
 
         ssl_context = h2utils.get_http2_ssl_context(type="server")
 
@@ -235,10 +247,9 @@ class Server(EventProcessor):
                 break
             events = httpconn.receive_data(data)
             for event in events:
-                logging.info("Server Event fired: " +
-                             event.__class__.__name__)
-                logging.debug("Server Event data: " +
-                              str(event))
+                logging.debug(
+                    "Server Event fired: " + event.__class__.__name__)
+                logging.debug("Server Event data: " + str(event))
 
                 self.handle_event(event, address)
 
@@ -326,14 +337,15 @@ class Server(EventProcessor):
         self.sock.shutdown(socket.SHUT_RDWR)
         self.sock.close()
 
-
     def start(self, config=None):
         """Entrypoint for starting the server"""
         if config:
             self.config(config)
         listen_socket_event = threading.Event()
         self.listen_thread = threading.Thread(
-            target=self.create_socket, args=(listen_socket_event,), name="ServerThread")
+            target=self.create_socket,
+            args=(listen_socket_event, ),
+            name="ServerThread")
         self.listen_thread.start()
         listen_socket_event.wait()
 
@@ -354,10 +366,11 @@ def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO,
-                        format='%(filename)s:'
-                        '%(lineno)d:'
-                        '%(levelname)s:'
-                        '%(funcName)s():\t'
-                        '%(message)s')
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(filename)s:'
+        '%(lineno)d:'
+        '%(levelname)s:'
+        '%(funcName)s():\t'
+        '%(message)s')
     main()
