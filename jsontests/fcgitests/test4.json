@@ -18,10 +18,9 @@
     "name": "ts1"
   },
   {
-    "action": "waitfor",
-    "event": "ts.ProcessStarted",
-    "name": "tsstarted",
-    "data": ""
+    "action": "ts1.scan_for",
+    "name": "tsr",
+    "keyword": "done"
   },
   {
     "create": "fcgi.client",
@@ -59,7 +58,7 @@
         },
         {
           "action": "execute",
-          "execute": "print(resp1);"
+          "execute": "print(resp1.headers)"
         },
         {
           "action": "expect",

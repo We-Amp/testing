@@ -25,17 +25,15 @@
     "cmd": "trafficserver",
     "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
     "root_access": true,
-    "password": "password",
     "arguments": [
       "start"
     ],
     "name": "ts1"
   },
   {
-    "action": "waitfor",
-    "event": "ts.ProcessStarted",
-    "name": "tsstarted",
-    "data": ""
+    "action":"ts1.scan_for",
+    "name": "tsr",
+    "keyword": "done"
   },
   {
     "create": "fcgi.client",
@@ -78,7 +76,6 @@
     "cmd": "trafficserver",
     "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
     "root_access": true,
-    "password": "password",
     "arguments": [
       "stop"
     ],
