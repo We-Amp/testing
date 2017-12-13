@@ -86,7 +86,7 @@ def create(context):
 def main():
     """Standalone client instance"""
     client = Client()
-    client.request("http://localhost:8080")
+    client.request("http://localhost:9080/abc.php")
 
 
 if __name__ == "__main__":

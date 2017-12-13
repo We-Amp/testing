@@ -4,15 +4,14 @@ FCGI Server
 
 import logging
 import socket
-import threading
 import struct
+import sys
+import threading
 
 import flup.server.fcgi_base as fcgi
-
-import sys
+from Events import EventProcessor
 
 sys.path.append("/home/gdb/project/testing/prototesting/")
-from Events import EventProcessor
 
 
 class Response:
@@ -159,6 +158,7 @@ class Server(EventProcessor):
 
             elif fcgi_type == fcgi.FCGI_STDIN:
                 logging.info("FCGI_STDIN")
+                logging.info("Data: " + content_data.decode())
                 self.event_received("FCGI_STDIN",
                                     Response(self, address, content_data),
                                     lambda event, data: True, None)
