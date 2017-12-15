@@ -6,7 +6,7 @@ import importlib
 import json
 import logging
 import threading
-from externallauncher import launcher
+import re
 
 
 class TestUnit:
@@ -78,11 +78,13 @@ class TestUnit:
         mod = getattr(self, expect[0])
         if len(expect) > 2:
             args.append(expect[2])
-            logging.info(args)
+            logging.debug(args)
             result = getattr(mod, expect[1])(*args)
             expectation = {"Description": cmd["Description"]}
-            logging.info(output)
-            if str(result) == str(cmd["expected"]):
+            logging.debug(output)
+
+            match = re.search(str(cmd["expected"]), str(result))
+            if match:
                 output["status"] = "passed"
             else:
                 output["status"] = "failed"
