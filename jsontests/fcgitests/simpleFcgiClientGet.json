@@ -1,7 +1,7 @@
 [
   {
-    "TestName": "FCGI client",
-    "Description": "This test creates basic fcgi client and starts fcgi server"
+    "TestName": "FCGI client GET",
+    "Description": "Simple fcgi test which starts ATS and php-fastcgi"
   },
   {
     "create": "externallauncher.launcher",
@@ -31,7 +31,7 @@
     "name": "ts1"
   },
   {
-    "action":"ts1.scan_for",
+    "action": "ts1.scan_for",
     "name": "tsr",
     "keyword": "done"
   },
@@ -72,6 +72,11 @@
     "name": "php2"
   },
   {
+    "action": "php2.scan_for",
+    "name": "phpend",
+    "keyword": "php-cgi"
+  },
+  {
     "action": "ts.launch",
     "cmd": "trafficserver",
     "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
@@ -80,5 +85,10 @@
       "stop"
     ],
     "name": "ts2"
+  },
+  {
+    "action": "ts2.scan_for",
+    "name": "tsr",
+    "keyword": "done"
   }
 ]

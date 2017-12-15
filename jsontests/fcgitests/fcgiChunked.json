@@ -1,7 +1,7 @@
 [
   {
-    "TestName": "FCGI client",
-    "Description": "This test creates basic fcgi client and starts fcgi server"
+    "TestName": "FCGI Server and Client Chunked",
+    "Description": "Test chunked response from fcgi server"
   },
   {
     "create": "externallauncher.launcher",
@@ -123,5 +123,10 @@
       "stop"
     ],
     "name": "ts2"
+  },
+  {
+    "action": "ts2.scan_for",
+    "name": "tsr",
+    "keyword": "done"
   }
 ]
