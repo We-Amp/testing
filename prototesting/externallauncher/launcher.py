@@ -8,7 +8,7 @@ import subprocess
 import threading
 from os.path import join
 
-from Events import EventProcessor
+from event import EventProcessor
 
 
 class Launcher(EventProcessor):

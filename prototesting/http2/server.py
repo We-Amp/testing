@@ -10,7 +10,7 @@ from os.path import dirname, isfile, join, realpath
 import h2.connection
 import h2.events
 
-from Events import EventProcessor
+from event import EventProcessor
 from http2 import h2utils
 
 

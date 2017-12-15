@@ -2,8 +2,6 @@
 Basic event handlers
 """
 
-# :TODO(Piyush): rename this to event.py
-
 
 class EventProcessor:
     """

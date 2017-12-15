@@ -9,7 +9,7 @@ import sys
 import threading
 
 import flup.server.fcgi_base as fcgi
-from Events import EventProcessor
+from event import EventProcessor
 
 sys.path.append("/home/gdb/project/testing/prototesting/")
 

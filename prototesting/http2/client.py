@@ -20,7 +20,7 @@ from urllib.parse import urlparse
 
 import h2.connection
 
-from Events import EventProcessor
+from event import EventProcessor
 from http2 import h2utils
 """
     Client class to send client request.

@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from hyper import HTTPConnection
 
-from Events import EventProcessor
+from event import EventProcessor
 
 
 class Response:
