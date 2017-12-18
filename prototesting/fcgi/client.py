@@ -6,7 +6,15 @@ from urllib.parse import urlparse
 
 from hyper import HTTPConnection
 
-from event import EventProcessor
+try:
+    from event import EventProcessor
+except ImportError:
+    import os
+    import sys
+    # add prototesting folder to sys path to sort out import error
+    # this is assuming that the script is called from base of git repo
+    sys.path.append(os.path.join(os.getcwd(), "prototesting"))
+    from event import EventProcessor
 
 
 class Response:

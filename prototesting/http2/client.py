@@ -20,11 +20,17 @@ from urllib.parse import urlparse
 
 import h2.connection
 
-from event import EventProcessor
-from http2 import h2utils
-"""
-    Client class to send client request.
-"""
+try:
+    from event import EventProcessor
+    from http2 import h2utils
+except ImportError:
+    import os
+    import sys
+    # add prototesting folder to sys path to sort out import error
+    # this is assuming that the script is called from base of git repo
+    sys.path.append(os.path.join(os.getcwd(), "prototesting"))
+    from event import EventProcessor
+    from http2 import h2utils
 
 
 class Response:

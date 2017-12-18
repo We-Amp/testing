@@ -10,8 +10,17 @@ from os.path import dirname, isfile, join, realpath
 import h2.connection
 import h2.events
 
-from event import EventProcessor
-from http2 import h2utils
+try:
+    from event import EventProcessor
+    from http2 import h2utils
+except ImportError:
+    import os
+    import sys
+    # add prototesting folder to sys path to sort out import error
+    # this is assuming that the script is called from base of git repo
+    sys.path.append(os.path.join(os.getcwd(), "prototesting"))
+    from event import EventProcessor
+    from http2 import h2utils
 
 
 class Response:

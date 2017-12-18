@@ -5,13 +5,19 @@ FCGI Server
 import logging
 import socket
 import struct
-import sys
 import threading
 
 import flup.server.fcgi_base as fcgi
-from event import EventProcessor
 
-sys.path.append("/home/gdb/project/testing/prototesting/")
+try:
+    from event import EventProcessor
+except ImportError:
+    import os
+    import sys
+    # add prototesting folder to sys path to sort out import error
+    # this is assuming that the script is called from base of git repo
+    sys.path.append(os.path.join(os.getcwd(), "prototesting"))
+    from event import EventProcessor
 
 
 class Response:
