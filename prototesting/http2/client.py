@@ -20,13 +20,17 @@ from urllib.parse import urlparse
 
 import h2.connection
 
-from http2 import h2utils
-
-from jsonparser.jsonparser import EventProcessor
-
-"""
-    Client class to send client request.
-"""
+try:
+    from event import EventProcessor
+    from http2 import h2utils
+except ImportError:
+    import os
+    import sys
+    # add prototesting folder to sys path to sort out import error
+    # this is assuming that the script is called from base of git repo
+    sys.path.append(os.path.join(os.getcwd(), "prototesting"))
+    from event import EventProcessor
+    from http2 import h2utils
 
 
 class Response:
@@ -76,8 +80,8 @@ class Request(EventProcessor):
         logging.info("Cache received events:" + response.type)
 
         event_name = event.__class__.__name__
-        self.event_received(event_name, response,
-                            lambda event, data: True, event)
+        self.event_received(event_name, response, lambda event, data: True,
+                            event)
 
 
 class Client(EventProcessor):
@@ -86,8 +90,7 @@ class Client(EventProcessor):
     """
 
     def __init__(self, context=None):
-        if context:
-            EventProcessor.__init__(self, context)
+        EventProcessor.__init__(self, context)
         self.sslcontext = None
         self.connection = None
         self.tls_connection = None
@@ -112,11 +115,16 @@ class Client(EventProcessor):
         self.sslcontext = h2utils.get_http2_ssl_context(type="client")
 
         parsed_url = urlparse(url)
-        url_location = parsed_url.netloc.split(":")
+        host = parsed_url.netloc
+        port = '443'
+        if ':' in host:
+            # host contains a port so we will use that port
+            url_location = host.split(":")
+            host = url_location[0]
+            port = url_location[1]
 
         # Step 2: Create a TCP connection.
-        self.connection = self.establish_tcp_connection(
-            url_location[0], url_location[1])
+        self.connection = self.establish_tcp_connection(host, port)
 
         # Step 3: Wrap the connection in TLS and validate that we negotiated HTTP/2
         self.tls_connection = h2utils.negotiate_tls(
@@ -216,8 +224,8 @@ class Client(EventProcessor):
             request.add_received_events(response, event)
         else:
             event_name = event.__class__.__name__
-            self.event_received(event_name,
-                                response, lambda event, data: True, event)
+            self.event_received(event_name, response, lambda event, data: True,
+                                event)
 
         # Not sure if these all are needed, special handlin can/should be added
         # on need to basis

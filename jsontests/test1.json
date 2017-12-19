@@ -63,6 +63,12 @@
       [
         {
           "action": "waitfor",
+          "event": "h2s.ClientConnected",
+          "name": "clientconnected",
+          "data": ""
+        },
+        {
+          "action": "waitfor",
           "event": "h2s.RequestReceived",
           "name": "h2srequest1",
           "data": "https://localhost:8080/test1.html"

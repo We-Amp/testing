@@ -4,6 +4,7 @@ This module provide common utilities for http2 protocol
 import logging
 import ssl
 
+
 def get_http2_ssl_context(type=None):
     """
     This function creates an SSLContext object that is suitably configured for

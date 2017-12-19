@@ -1,21 +1,21 @@
 #!/usr/bin/python -tt
-
 """ Entry point
 """
 import logging
-from os import listdir
-from os.path import dirname, isfile, join, realpath, isdir
 import sys
+from os import listdir
+from os.path import dirname, isdir, isfile, join, realpath
 
 from jsonparser import jsonparser
 
-logging.basicConfig(level=logging.INFO,
-                    format='\n%(threadName)s:'
-                    '%(filename)s:'
-                    '%(lineno)d:'
-                    '%(levelname)s:'
-                    '%(funcName)s(): '
-                    '%(message)s\n')
+logging.basicConfig(
+    level=logging.INFO,
+    format='\n%(threadName)s:'
+    '%(filename)s:'
+    '%(lineno)d:'
+    '%(levelname)s:'
+    '%(funcName)s(): '
+    '%(message)s\n')
 
 
 def run_test(filepath):
@@ -43,8 +43,10 @@ def main():
     test_unit_list = []
     for testfilespath in files:
         if isdir(testfilespath):
-            testfiles = [join(testfilespath, file) for file in listdir(
-                testfilespath) if isfile(join(testfilespath, file))]
+            testfiles = [
+                join(testfilespath, file) for file in listdir(testfilespath)
+                if isfile(join(testfilespath, file))
+            ]
             for file in testfiles:
                 test_unit = run_test(file)
                 test_unit_list.append(test_unit)

@@ -6,26 +6,7 @@ import importlib
 import json
 import logging
 import threading
-
-
-class EventProcessor:
-    """
-    Class which want to register for events or post events needs to derive from this class.
-    """
-
-    def __init__(self, context):
-        self.context = context
-
-    def event_received(self, event_name, response, compare_func, event):
-        """
-        Subclass should call this function when it receives an event for which test can wait for
-        response, a object on which future calls will be called.
-        compare_func, a function object which will be called to
-                     compare the data from test with received data in event.
-                     compare_func should take two params, event which was received, data mentioned
-                     in test.
-        """
-        self.context.event_received(event_name, response, compare_func, event)
+import re
 
 
 class TestUnit:
@@ -97,11 +78,13 @@ class TestUnit:
         mod = getattr(self, expect[0])
         if len(expect) > 2:
             args.append(expect[2])
-            logging.info(args)
+            logging.debug(args)
             result = getattr(mod, expect[1])(*args)
             expectation = {"Description": cmd["Description"]}
-            logging.info(output)
-            if str(result) == str(cmd["expected"]):
+            logging.debug(output)
+
+            match = re.search(str(cmd["expected"]), str(result))
+            if match:
                 output["status"] = "passed"
             else:
                 output["status"] = "failed"

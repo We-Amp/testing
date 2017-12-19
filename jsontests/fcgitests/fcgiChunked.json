@@ -1,0 +1,132 @@
+[
+  {
+    "TestName": "FCGI Server and Client Chunked",
+    "Description": "Test chunked response from fcgi server"
+  },
+  {
+    "create": "externallauncher.launcher",
+    "name": "ts"
+  },
+  {
+    "action": "ts.launch",
+    "cmd": "trafficserver",
+    "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
+    "root_access": true,
+    "arguments": [
+      "start"
+    ],
+    "name": "ts1"
+  },
+  {
+    "action": "ts1.scan_for",
+    "name": "tsr",
+    "keyword": "done"
+  },
+  {
+    "create": "fcgi.client",
+    "name": "fcgi"
+  },
+  {
+    "create": "fcgi.server",
+    "name": "fs"
+  },
+  {
+    "action": "fs.start"
+  },
+  {
+    "action": "waitfor",
+    "event": "fs.ServerStarted",
+    "name": "fs1",
+    "data": ""
+  },
+  {
+    "action": "parallel",
+    "list": [
+      [
+        {
+          "action": "fcgi.request",
+          "url": "http://localhost:9080/ajaxExample.php",
+          "name": "request1"
+        },
+        {
+          "action": "request1.get",
+          "url": "http://localhost:9080/ajaxExample.php",
+          "headers": {
+            "Connection": "keep-alive"
+          },
+          "name": "resp1"
+        },
+        {
+          "action": "execute",
+          "execute": "print(resp1.data())"
+        },
+        {
+          "action": "expect",
+          "value": "resp1.response_headers.:status",
+          "expected": 200,
+          "Description": "Status should be 200 OK"
+        }
+      ],
+      [
+        {
+          "action": "waitfor",
+          "event": "fs.FCGI_STDIN",
+          "name": "fsrequest1",
+          "data": ""
+        },
+        {
+          "action": "fsrequest1.send_record",
+          "request_id": 1,
+          "type": "FCGI_STDOUT",
+          "data": "Content-type: text/html\r\n\r\n",
+          "padding_length": 0,
+          "version": 1,
+          "name": "rec1"
+        },
+        {
+          "action": "fsrequest1.send_record",
+          "request_id": 1,
+          "type": "FCGI_STDOUT",
+          "data": "First chunk\r\n",
+          "padding_length": 0,
+          "version": 1,
+          "name": "rec1"
+        },
+        {
+          "action": "fsrequest1.send_record",
+          "request_id": 1,
+          "type": "FCGI_STDOUT",
+          "data": "Second chunk\r\n\r\n",
+          "padding_length": 0,
+          "version": 1,
+          "name": "rec1"
+        },
+        {
+          "action": "fsrequest1.send_record",
+          "request_id": 1,
+          "type": "FCGI_END_REQUEST",
+          "name": "rec2"
+        }
+      ]
+    ]
+  },
+  {
+    "action": "fs.kill",
+    "name": "fsk"
+  },
+  {
+    "action": "ts.launch",
+    "cmd": "trafficserver",
+    "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
+    "root_access": true,
+    "arguments": [
+      "stop"
+    ],
+    "name": "ts2"
+  },
+  {
+    "action": "ts2.scan_for",
+    "name": "tsr",
+    "keyword": "done"
+  }
+]

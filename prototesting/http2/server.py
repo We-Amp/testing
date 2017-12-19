@@ -10,9 +10,17 @@ from os.path import dirname, isfile, join, realpath
 import h2.connection
 import h2.events
 
-from http2 import h2utils
-
-from jsonparser.jsonparser import EventProcessor
+try:
+    from event import EventProcessor
+    from http2 import h2utils
+except ImportError:
+    import os
+    import sys
+    # add prototesting folder to sys path to sort out import error
+    # this is assuming that the script is called from base of git repo
+    sys.path.append(os.path.join(os.getcwd(), "prototesting"))
+    from event import EventProcessor
+    from http2 import h2utils
 
 
 class Response:
@@ -168,6 +176,10 @@ class Server(EventProcessor):
                 return
 
             logging.debug("Socket Connected to client at " + str(address))
+
+            # Signify that Client is Connected
+            self.event_received("ClientConnected", self,
+                                lambda event, data: True, None)
 
             logging.debug("TCP connection:" + str(tcpconn))
 

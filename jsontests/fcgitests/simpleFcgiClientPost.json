@@ -1,0 +1,95 @@
+[
+  {
+    "TestName": "FCGI client POST",
+    "Description": "Simple fcgi POST using php-fastgi and ATS"
+  },
+  {
+    "create": "externallauncher.launcher",
+    "name": "php"
+  },
+  {
+    "action": "php.launch",
+    "cmd": "php-fastcgi.sh",
+    "path": "/home/gdb/trafficserver/AtsFastcgi/InterceptCPPAPI/bin/",
+    "arguments": [
+      "start"
+    ],
+    "name": "php1"
+  },
+  {
+    "create": "externallauncher.launcher",
+    "name": "ts"
+  },
+  {
+    "action": "ts.launch",
+    "cmd": "trafficserver",
+    "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
+    "root_access": true,
+    "arguments": [
+      "start"
+    ],
+    "name": "ts1"
+  },
+  {
+    "action": "ts1.scan_for",
+    "name": "tsr",
+    "keyword": "done"
+  },
+  {
+    "create": "fcgi.client",
+    "name": "fcgi"
+  },
+  {
+    "action": "fcgi.request",
+    "url": "http://localhost:9080/welcome.php",
+    "name": "request1"
+  },
+  {
+    "action": "request1.post",
+    "url": "http://localhost:9080/welcome.php",
+    "headers": {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    "data": "name=abc&email=xyz%40abc.mma",
+    "name": "resp1"
+  },
+  {
+    "action": "expect",
+    "value": "resp1.response_headers.:status",
+    "expected": 200,
+    "Description": "Status should be 200 OK"
+  },
+  {
+    "action": "execute",
+    "execute": "print(resp1.received_data);"
+  },
+  {
+    "action": "php.launch",
+    "cmd": "php-fastcgi.sh",
+    "path": "/home/gdb/trafficserver/AtsFastcgi/InterceptCPPAPI/bin/",
+    "arguments": [
+      "stop"
+    ],
+    "name": "php2"
+  },
+  {
+    "action": "php2.scan_for",
+    "name": "phpend",
+    "keyword": "php-cgi"
+  },
+  {
+    "action": "ts.launch",
+    "cmd": "trafficserver",
+    "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
+    "root_access": true,
+    "arguments": [
+      "stop"
+    ],
+    "name": "ts2"
+  },
+  {
+    "action": "ts2.scan_for",
+    "name": "tsr",
+    "keyword": "done"
+  }
+]
