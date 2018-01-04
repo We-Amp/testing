@@ -1,0 +1,67 @@
+[
+  {
+    "TestName": "FCGI Server and Client POST",
+    "Description": "Test fcgi GET using both client and server"
+  },
+  {
+    "create": "externallauncher.launcher",
+    "name": "ts"
+  },
+  {
+    "action": "ts.launch",
+    "cmd": "trafficserver",
+    "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
+    "root_access": true,
+    "arguments": [
+      "start"
+    ],
+    "name": "ts1"
+  },
+  {
+    "action": "ts1.scan_for",
+    "name": "tsr",
+    "keyword": "done"
+  },
+  {
+    "create": "fcgi.client",
+    "name": "fcgi"
+  },
+  {
+    "action": "fcgi.request",
+    "url": "http://localhost:9080/ajaxExample.php",
+    "name": "request1"
+  },
+  {
+    "action": "request1.get",
+    "url": "http://localhost:9080/ajaxExample.php",
+    "headers": {
+      "Connection": "keep-alive"
+    },
+    "name": "resp1"
+  },
+  {
+    "action": "execute",
+    "execute": "print(resp1.headers)"
+  },
+  {
+    "action": "expect",
+    "value": "resp1.response_headers.:status",
+    "expected": 200,
+    "Description": "Status should be 200 OK"
+  },
+  {
+    "action": "ts.launch",
+    "cmd": "trafficserver",
+    "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
+    "root_access": true,
+    "arguments": [
+      "stop"
+    ],
+    "name": "ts2"
+  },
+  {
+    "action": "ts2.scan_for",
+    "name": "tsr",
+    "keyword": "done"
+  }
+]
