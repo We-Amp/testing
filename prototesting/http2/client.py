@@ -23,6 +23,7 @@ import h2.connection
 try:
     from event import EventProcessor
     from http2 import h2utils
+    from response import Response
 except ImportError:
     import os
     import sys
@@ -31,18 +32,20 @@ except ImportError:
     sys.path.append(os.path.join(os.getcwd(), "prototesting"))
     from event import EventProcessor
     from http2 import h2utils
+    from response import Response
 
 
-class Response:
+class H2Response(Response):
     """
     Response holds all data needed to verify the expectations of test
     """
 
     def __init__(self, event):
+        Response.__init__(self)
         self.type = event.__class__.__name__
 
         try:
-            self.received_data = event.data
+            self.data = event.data
         except AttributeError:
             pass
 
@@ -56,13 +59,24 @@ class Response:
         except AttributeError:
             pass
 
-    def response_headers(self, field):
-        for value in self.headers:
-            if value[0] == field:
-                return value[1]
+    def handle_expectation(self, value, expected, expectation):
+        if "headers" in value[0]:
+            # type is header
+            got = ""
+            for tup in self.headers:
+                if tup[0] == value[1]:
+                    got = tup[1]
+                    break
 
-    def data(self):
-        return self.received_data
+            if len(value) > 2:
+                #extra operation needs to be performed on the value of headers
+                got = getattr(got, value[2])
+
+            super().match_expectation(expected, got, expectation)
+
+        else:
+            # call parent function
+            super().handle_expectation(value[0], expected, expectation)
 
 
 class Request(EventProcessor):
@@ -208,7 +222,7 @@ class Client(EventProcessor):
         so that they can be handled async when test specifies it
         """
         request = None
-        response = Response(event)
+        response = H2Response(event)
         try:
             stream_id = event.stream_id
 

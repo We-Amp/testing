@@ -18,17 +18,18 @@ except ImportError:
     # this is assuming that the script is called from base of git repo
     sys.path.append(os.path.join(os.getcwd(), "prototesting"))
     from event import EventProcessor
+    from response import Response
 
 
-class Response:
+class FCGIResponse(Response):
     """
     Response holds all data needed to verify the expectations of test
     """
 
     def __init__(self, server, address, data):
+        Response.__init__(self, data)
         self.server = server
         self.address = address
-        self.data = data
 
     def send_record(self,
                     request_id=1,
@@ -37,11 +38,18 @@ class Response:
                     content_length=0,
                     padding_length=0,
                     version=1):
+        """
+        Send a FCGI record to client
+        """
         self.server.send_record(self.address, request_id, type, data,
                                 content_length, padding_length, version)
 
 
 class Server(EventProcessor):
+    """
+    Simple FCGI Server
+    """
+
     def __init__(self, context=None):
         EventProcessor.__init__(self, context)
         self.sock = None

@@ -8,6 +8,7 @@ from hyper import HTTPConnection
 
 try:
     from event import EventProcessor
+    from response import Response
 except ImportError:
     import os
     import sys
@@ -15,31 +16,36 @@ except ImportError:
     # this is assuming that the script is called from base of git repo
     sys.path.append(os.path.join(os.getcwd(), "prototesting"))
     from event import EventProcessor
+    from response import Response
 
 
-class Response:
+class FCGIResponse(Response):
     """
     Response holds all data needed to verify the expectations of test
     """
 
     def __init__(self, event):
-        self.type = event.__class__.__name__
+        Response.__init__(self)
 
-        self.received_data = event.read()
+        self.type = event.__class__.__name__
+        self.data = event.read()
         self.headers = event.headers
         self.headers[":status"] = str(event.status)
 
-    def response_headers(self, field):
-        logging.info(self.headers)
-        logging.info(self.received_data)
+    def handle_expectation(self, value, expected, expectation):
+        if "headers" in value[0]:
+            # type is header
+            got = self.headers[value[1]]
 
-        if field in self.headers:
-            return self.headers[field][0].decode()
+            if len(value) > 2:
+                #extra operation needs to be performed on the value of headers
+                got = getattr(got, value[2])
 
-        return None
+            super().match_expectation(expected, got, expectation)
 
-    def data(self):
-        return self.received_data
+        else:
+            # call parent function
+            super().handle_expectation(value[0], expected, expectation)
 
 
 class Client(EventProcessor):
@@ -70,7 +76,7 @@ class Client(EventProcessor):
         self.conn.request('GET', parsed_url.path, headers=headers)
         resp = self.conn.get_response()
         # :TODO(Piyush) Add event to signify reception of event
-        return Response(resp)
+        return FCGIResponse(resp)
 
     def post(self, url, headers=None, data=""):
         parsed_url = urlparse(url)
@@ -80,7 +86,7 @@ class Client(EventProcessor):
         resp = self.conn.get_response()
         logging.info(dir(resp))
         # :TODO(Piyush) Add event to signify reception of event
-        return Response(resp)
+        return FCGIResponse(resp)
 
 
 def create(context):

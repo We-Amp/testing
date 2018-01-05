@@ -71,35 +71,11 @@ class TestUnit:
         """
         Handle Expectations
         """
-        args = []
         output = {"Description": cmd["Description"]}
         expect = cmd["value"].split(".")
-        invalid_action_items = ["action", "value", "Description"]
         mod = getattr(self, expect[0])
-        if len(expect) > 2:
-            args.append(expect[2])
-            logging.debug(args)
-            result = getattr(mod, expect[1])(*args)
-            expectation = {"Description": cmd["Description"]}
-            logging.debug(output)
-
-            match = re.search(str(cmd["expected"]), str(result))
-            if match:
-                output["status"] = "passed"
-            else:
-                output["status"] = "failed"
-                output["expected"] = str(cmd["expected"])
-                output["got"] = str(result)
-
-            self.expectations.append(output)
-        else:
-            for action_item in cmd:
-                if action_item not in invalid_action_items:
-                    args.append(cmd[action_item])
-            args.append(output)
-            expectation = getattr(mod, expect[1])(*args)
-            logging.info(expectation)
-            self.expectations.append(expectation)
+        mod.handle_expectation(expect[1:], cmd["expected"], output)
+        self.expectations.append(output)
 
     def parser(self, cmds):
         """
