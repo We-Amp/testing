@@ -6,7 +6,6 @@ import importlib
 import json
 import logging
 import threading
-import re
 
 
 class TestUnit:
@@ -111,11 +110,12 @@ class TestUnit:
 
                         if not success:
                             logging.debug("Event timedout: " + cmd["name"])
-                            # Returning as something timed out
-                            # :TODO(piyush) Add graceful error handling
-                            return
-
-                        logging.debug("Event received: " + cmd["name"])
+                            # Returning as something timed out                            output = {"Description": "Event timeout"}
+                            output["name"] = cmd["name"]
+                            output["status"] = "timedout"
+                            self.expectations.append(output)
+                        else:
+                            logging.debug("Event received: " + cmd["name"])
 
                     elif cmd["action"] == "execute":
                         self.handle_execute(cmd)
