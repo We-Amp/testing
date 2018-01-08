@@ -76,6 +76,16 @@ class TestUnit:
         mod.handle_expectation(expect[1:], cmd["expected"], output)
         self.expectations.append(output)
 
+    def handle_timeout(self, event, timeout):
+        """
+        On timeout of any operation add entry in expectations to be printed on exit
+        """
+        output = {"Description": "Event timeout"}
+        output["name"] = event
+        output["time"] = timeout
+        output["status"] = "timedout"
+        self.expectations.append(output)
+
     def parser(self, cmds):
         """
             Tests json parser
@@ -110,10 +120,7 @@ class TestUnit:
 
                         if not success:
                             logging.debug("Event timedout: " + cmd["name"])
-                            # Returning as something timed out                            output = {"Description": "Event timeout"}
-                            output["name"] = cmd["name"]
-                            output["status"] = "timedout"
-                            self.expectations.append(output)
+                            self.handle_timeout(cmd["name"], timeout)
                         else:
                             logging.debug("Event received: " + cmd["name"])
 
@@ -155,8 +162,14 @@ class TestUnit:
 
         self.parser(json_data)
 
+        default_timeout = 20
+
         for thread in self.threads:
-            thread.join()
+            thread.join(default_timeout)
+
+            if thread.is_alive():
+                # thread is still alive after time out, add failure status for that thread
+                self.handle_timeout(thread.name, default_timeout)
 
     def register_event(self, waitfor_event_name, wait_event, name, data):
         """

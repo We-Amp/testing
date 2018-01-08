@@ -120,10 +120,8 @@ class Launcher(EventProcessor):
         if not success:
             logging.error("Event Timeout, Not found keyword : " + keyword)
             logging.error(self.buffer.getvalue())
-            output = {"Description": "Event timeout"}
-            output["name"] = "ScanFor: " + keyword
-            output["status"] = "timedout"
-            self.context.expectations.append(output)
+            event_name = "ScanFor: " + keyword
+            self.context.handle_timeout(event_name, timeout)
 
     def kill(self):
         """
