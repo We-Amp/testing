@@ -64,7 +64,13 @@ class TestUnit:
 
     def handle_execute(self, cmd):
         """Execute a string given in "execute", can use the objects defined in test """
-        exec(cmd["execute"], self.__dict__)
+        try:
+            exec(cmd["execute"], self.__dict__)
+        except Exception as err:
+            output = {"Description": cmd["execute"]}
+            output["status"] = "failed"
+            output["reason"] = "Got Exception " + str(err)
+            self.expectations.append(output)
 
     def handle_expectation(self, cmd):
         """
@@ -76,14 +82,24 @@ class TestUnit:
         mod.handle_expectation(expect[1:], cmd["expected"], output)
         self.expectations.append(output)
 
-    def handle_timeout(self, event, timeout):
+    def handle_timeout(self, name, timeout):
         """
         On timeout of any operation add entry in expectations to be printed on exit
         """
         output = {"Description": "Event timeout"}
-        output["name"] = event
-        output["time"] = timeout
-        output["status"] = "timedout"
+        output["name"] = name
+        output["time"] = str(timeout)
+        output["status"] = "failed"
+        self.expectations.append(output)
+
+    def handle_failure(self, name, reason):
+        """
+        On failure of any operation add entry in expectations to be printed on exit
+        """
+        output = {"Description": "Event Failure"}
+        output["name"] = name
+        output["reason"] = str(reason)
+        output["status"] = "failed"
         self.expectations.append(output)
 
     def parser(self, cmds):

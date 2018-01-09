@@ -2,6 +2,7 @@
 Client for handling fcgi requests
 """
 import logging
+import socket
 from urllib.parse import urlparse
 
 from hyper import HTTPConnection
@@ -28,20 +29,30 @@ class FCGIResponse(Response):
         Response.__init__(self)
 
         self.type = event.__class__.__name__
-        self.data = event.read()
+
+        try:
+            self.data = event.read()
+        except socket.timeout as err:
+            self.data = str(err)
+
         self.headers = event.headers
         self.headers[":status"] = str(event.status)
 
     def handle_expectation(self, value, expected, expectation):
         if "headers" in value[0]:
             # type is header
-            got = self.headers[value[1]]
+            try:
+                got = self.headers[value[1]]
 
-            if len(value) > 2:
-                #extra operation needs to be performed on the value of headers
-                got = getattr(got, value[2])
+                if len(value) > 2:
+                    #extra operation needs to be performed on the value of headers
+                    got = getattr(got, value[2])
 
-            super().match_expectation(expected, got, expectation)
+                super().match_expectation(expected, got, expectation)
+            except Exception as err:
+                expectation["status"] = "failed"
+                expectation["expected"] = str(expected)
+                expectation["reason"] = "Got Exception " + str(err)
 
         else:
             # call parent function
@@ -73,20 +84,30 @@ class Client(EventProcessor):
     def get(self, url, headers=None):
         parsed_url = urlparse(url)
         logging.info(parsed_url.path)
-        self.conn.request('GET', parsed_url.path, headers=headers)
-        resp = self.conn.get_response()
-        # :TODO(Piyush) Add event to signify reception of event
-        return FCGIResponse(resp)
+        try:
+            self.conn.request('GET', parsed_url.path, headers=headers)
+            resp = self.conn.get_response()
+            # :TODO(Piyush) Add event to signify reception of event
+            return FCGIResponse(resp)
+        except socket.timeout as err:
+            self.context.handle_failure("Get " + url,
+                                        "Got Exception " + str(err))
+            return Response(str(err))
 
     def post(self, url, headers=None, data=""):
         parsed_url = urlparse(url)
         logging.info(parsed_url.path)
-        self.conn.request(
-            'POST', parsed_url.path, headers=headers, body=data.encode())
-        resp = self.conn.get_response()
-        logging.info(dir(resp))
-        # :TODO(Piyush) Add event to signify reception of event
-        return FCGIResponse(resp)
+        try:
+            self.conn.request(
+                'POST', parsed_url.path, headers=headers, body=data.encode())
+            resp = self.conn.get_response()
+            logging.info(dir(resp))
+            # :TODO(Piyush) Add event to signify reception of event
+            return FCGIResponse(resp)
+        except socket.timeout as err:
+            self.context.handle_failure("Post " + url,
+                                        "Got Exception " + str(err))
+            return Response(str(err))
 
 
 def create(context):

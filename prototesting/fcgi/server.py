@@ -11,6 +11,7 @@ import flup.server.fcgi_base as fcgi
 
 try:
     from event import EventProcessor
+    from response import Response
 except ImportError:
     import os
     import sys
@@ -137,13 +138,13 @@ class Server(EventProcessor):
 
             if fcgi_type == fcgi.FCGI_GET_VALUES:
                 self.event_received("FCGI_GET_VALUES",
-                                    Response(self, address, content_data),
+                                    FCGIResponse(self, address, content_data),
                                     lambda event, data: True, None)
                 logging.info("FCGI_GET_VALUES")
             elif fcgi_type == fcgi.FCGI_BEGIN_REQUEST:
 
                 self.event_received("FCGI_BEGIN_REQUEST",
-                                    Response(self, address, content_data),
+                                    FCGIResponse(self, address, content_data),
                                     lambda event, data: True, None)
                 unused_role, flags = struct.unpack(fcgi.FCGI_BeginRequestBody,
                                                    content_data)
@@ -154,7 +155,7 @@ class Server(EventProcessor):
                 logging.info("FCGI_BEGIN_REQUEST")
             elif fcgi_type == fcgi.FCGI_ABORT_REQUEST:
                 self.event_received("FCGI_ABORT_REQUEST",
-                                    Response(self, address, content_data),
+                                    FCGIResponse(self, address, content_data),
                                     lambda event, data: True, None)
                 logging.info("FCGI_ABORT_REQUEST")
             elif fcgi_type == fcgi.FCGI_PARAMS:
@@ -167,14 +168,14 @@ class Server(EventProcessor):
 
                 logging.info(decoded_data)
                 self.event_received("FCGI_PARAMS",
-                                    Response(self, address, decoded_data),
+                                    FCGIResponse(self, address, decoded_data),
                                     lambda event, data: True, None)
 
             elif fcgi_type == fcgi.FCGI_STDIN:
                 logging.info("FCGI_STDIN")
                 logging.info("Data: " + content_data.decode())
                 self.event_received("FCGI_STDIN",
-                                    Response(self, address, content_data),
+                                    FCGIResponse(self, address, content_data),
                                     lambda event, data: True, None)
 
                 if __name__ == "__main__":

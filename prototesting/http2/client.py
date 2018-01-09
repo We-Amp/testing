@@ -62,17 +62,22 @@ class H2Response(Response):
     def handle_expectation(self, value, expected, expectation):
         if "headers" in value[0]:
             # type is header
-            got = ""
-            for tup in self.headers:
-                if tup[0] == value[1]:
-                    got = tup[1]
-                    break
+            try:
+                got = ""
+                for tup in self.headers:
+                    if tup[0] == value[1]:
+                        got = tup[1]
+                        break
 
-            if len(value) > 2:
-                #extra operation needs to be performed on the value of headers
-                got = getattr(got, value[2])
+                if len(value) > 2:
+                    #extra operation needs to be performed on the value of headers
+                    got = getattr(got, value[2])
 
-            super().match_expectation(expected, got, expectation)
+                super().match_expectation(expected, got, expectation)
+            except Exception as err:
+                expectation["status"] = "failed"
+                expectation["expected"] = str(expected)
+                expectation["reason"] = "Got Exception " + str(err)
 
         else:
             # call parent function
