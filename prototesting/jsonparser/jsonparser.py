@@ -11,9 +11,10 @@ import threading
 class TestUnit:
     """ Container object which holds all modules imported using 'create' key """
 
-    def __init__(self, json_text):
+    def __init__(self, file_path, json_text):
         self.name = None
         self.description = None
+        self.file_path = file_path
         self.expectations = []
         self.threads = []
         self.registered_events = {}
@@ -233,6 +234,7 @@ class TestUnit:
             Print Test output
         """
         # print output
+        print("File Name: ", self.file_path)
         print("Test: ", self.name)
         print("Test Description:", self.description)
         print("Expectations:")

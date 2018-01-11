@@ -76,7 +76,7 @@ class Client(EventProcessor):
             host = url_location[0]
             port = url_location[1]
 
-        logging.info("host is {} and port is {}".format(host, port))
+        logging.info("host is %s and port is %s", host, port)
 
         self.conn = HTTPConnection(host, port, secure=secure)
         return self
