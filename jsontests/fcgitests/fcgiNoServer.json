@@ -1,7 +1,7 @@
 [
   {
-    "TestName": "FCGI Server and Client POST",
-    "Description": "Test fcgi GET using both client and server"
+    "TestName": "No FCGI Server and Client GET",
+    "Description": "Test fcgi GET using just client with no server"
   },
   {
     "create": "externallauncher.launcher",
@@ -46,8 +46,8 @@
   {
     "action": "expect",
     "value": "resp1.response_headers.:status",
-    "expected": 200,
-    "Description": "Status should be 200 OK"
+    "expected": 500,
+    "Description": "Status should be 500 Internal Server Error"
   },
   {
     "action": "ts.launch",

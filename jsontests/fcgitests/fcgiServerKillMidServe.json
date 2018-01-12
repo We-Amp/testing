@@ -1,7 +1,7 @@
 [
   {
-    "TestName": "FCGI Server and Client POST",
-    "Description": "Test fcgi GET using both client and server"
+    "TestName": "FCGI Server and Client GET Failure",
+    "Description": "Kill Server mid serve to test the error handling of ATS"
   },
   {
     "create": "externallauncher.launcher",

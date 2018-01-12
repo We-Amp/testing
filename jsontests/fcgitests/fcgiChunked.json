@@ -58,7 +58,7 @@
         },
         {
           "action": "execute",
-          "execute": "print(resp1.data())"
+          "execute": "print(resp1.data)"
         },
         {
           "action": "expect",
