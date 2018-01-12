@@ -1,6 +1,6 @@
 [
   {
-    "TestName": "FCGI Server and Client Chunked",
+    "TestName": "FCGI Server and Client Chunked Error",
     "Description": "Test chunked response from fcgi server"
   },
   {
@@ -65,12 +65,6 @@
           "value": "resp1.response_headers.:status",
           "expected": 200,
           "Description": "Status should be 200 OK"
-        },
-        {
-          "action": "expect",
-          "value": "resp1.response_headers.Transfer-Encoding",
-          "expected": "chunked",
-          "Description": "Transfer encoding should be chunked"
         }
       ],
       [
@@ -102,23 +96,17 @@
           "action": "fsrequest1.send_record",
           "request_id": 1,
           "type": "FCGI_STDOUT",
-          "data": "Second chunk\r\n\r\n",
+          "data": "Second chunk\r\n",
           "padding_length": 0,
           "version": 1,
           "name": "rec1"
         },
         {
-          "action": "fsrequest1.send_record",
-          "request_id": 1,
-          "type": "FCGI_END_REQUEST",
-          "name": "rec2"
+          "action": "fs.kill",
+          "name": "fsk"
         }
       ]
     ]
-  },
-  {
-    "action": "fs.kill",
-    "name": "fsk"
   },
   {
     "action": "ts.launch",

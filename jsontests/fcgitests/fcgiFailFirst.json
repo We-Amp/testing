@@ -1,6 +1,6 @@
 [
   {
-    "TestName": "FCGI Server and Client Chunked",
+    "TestName": "FCGI Server and Client Chunked Error",
     "Description": "Test chunked response from fcgi server"
   },
   {
@@ -58,19 +58,44 @@
         },
         {
           "action": "execute",
-          "execute": "print(resp1.data)"
+          "execute": "print(resp1.headers)"
         },
         {
           "action": "expect",
           "value": "resp1.response_headers.:status",
           "expected": 200,
-          "Description": "Status should be 200 OK"
+          "Description": "Request 1 Status should be 200 OK"
         },
         {
           "action": "expect",
-          "value": "resp1.response_headers.Transfer-Encoding",
-          "expected": "chunked",
-          "Description": "Transfer encoding should be chunked"
+          "value": "resp1.data",
+          "expected": "First chunk",
+          "Description": "Request 1 data should be chunked"
+        },
+        {
+          "action": "fcgi.request",
+          "url": "http://localhost:9080/ajaxExample.php",
+          "name": "request2"
+        },
+        {
+          "action": "request2.get",
+          "url": "http://localhost:9080/ajaxExample.php",
+          "headers": {
+            "Connection": "keep-alive"
+          },
+          "name": "resp2"
+        },
+        {
+          "action": "expect",
+          "value": "resp2.response_headers.:status",
+          "expected": 200,
+          "Description": "Request 2 Status should be 200 OK"
+        },
+        {
+          "action": "expect",
+          "value": "resp2.data",
+          "expected": "HelloWorld",
+          "Description": "Data should be HelloWorld and it should not be cached"
         }
       ],
       [
@@ -84,7 +109,7 @@
           "action": "fsrequest1.send_record",
           "request_id": 1,
           "type": "FCGI_STDOUT",
-          "data": "Content-type: text/html\r\n\r\n",
+          "data": "Content-type: text/html\r\nCache-Control: max-age=60\r\n\r\n",
           "padding_length": 0,
           "version": 1,
           "name": "rec1"
@@ -102,23 +127,55 @@
           "action": "fsrequest1.send_record",
           "request_id": 1,
           "type": "FCGI_STDOUT",
-          "data": "Second chunk\r\n\r\n",
+          "data": "Second chunk\r\n",
           "padding_length": 0,
           "version": 1,
           "name": "rec1"
         },
         {
-          "action": "fsrequest1.send_record",
+          "action": "fs.kill",
+          "name": "fsk"
+        },
+        {
+          "create": "fcgi.server",
+          "name": "fs2"
+        },
+        {
+          "action": "fs2.start"
+        },
+        {
+          "action": "waitfor",
+          "event": "fs2.ServerStarted",
+          "name": "fs2S",
+          "data": ""
+        },
+        {
+          "action": "waitfor",
+          "event": "fs2.FCGI_STDIN",
+          "name": "fsrequest2",
+          "data": ""
+        },
+        {
+          "action": "fsrequest2.send_record",
+          "request_id": 1,
+          "type": "FCGI_STDOUT",
+          "data": "Content-type: text/html\r\nContent-Length: 10\r\n\r\nHelloWorld\r\n\r\n",
+          "padding_length": 0,
+          "version": 1,
+          "name": "newrec1"
+        },
+        {
+          "action": "fsrequest2.send_record",
           "request_id": 1,
           "type": "FCGI_END_REQUEST",
-          "name": "rec2"
+          "name": "newrec2"
+        },
+        {
+          "action": "fs2.kill",
+          "name": "fsk2"
         }
       ]
     ]
-  },
-  {
-    "action": "fs.kill",
-    "name": "fsk"
   },
   {
     "action": "ts.launch",
