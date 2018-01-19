@@ -1,7 +1,7 @@
 [
   {
-    "TestName": "FCGI Server and Client Chunked",
-    "Description": "Test chunked response from fcgi server"
+    "TestName": "FCGI Server and Client GET Failure",
+    "Description": "Kill Server mid serve to test the error handling of ATS"
   },
   {
     "create": "externallauncher.launcher",
@@ -58,19 +58,13 @@
         },
         {
           "action": "execute",
-          "execute": "print(resp1.data)"
+          "execute": "print(resp1.headers)"
         },
         {
           "action": "expect",
           "value": "resp1.response_headers.:status",
           "expected": 200,
           "Description": "Status should be 200 OK"
-        },
-        {
-          "action": "expect",
-          "value": "resp1.response_headers.Transfer-Encoding",
-          "expected": "chunked",
-          "Description": "Transfer encoding should be chunked"
         }
       ],
       [
@@ -81,44 +75,11 @@
           "data": ""
         },
         {
-          "action": "fsrequest1.send_record",
-          "request_id": 1,
-          "type": "FCGI_STDOUT",
-          "data": "Content-type: text/html\r\n\r\n",
-          "padding_length": 0,
-          "version": 1,
-          "name": "rec1"
-        },
-        {
-          "action": "fsrequest1.send_record",
-          "request_id": 1,
-          "type": "FCGI_STDOUT",
-          "data": "First chunk\r\n",
-          "padding_length": 0,
-          "version": 1,
-          "name": "rec1"
-        },
-        {
-          "action": "fsrequest1.send_record",
-          "request_id": 1,
-          "type": "FCGI_STDOUT",
-          "data": "Second chunk\r\n\r\n",
-          "padding_length": 0,
-          "version": 1,
-          "name": "rec1"
-        },
-        {
-          "action": "fsrequest1.send_record",
-          "request_id": 1,
-          "type": "FCGI_END_REQUEST",
-          "name": "rec2"
+          "action": "fs.kill",
+          "name": "fsk"
         }
       ]
     ]
-  },
-  {
-    "action": "fs.kill",
-    "name": "fsk"
   },
   {
     "action": "ts.launch",
