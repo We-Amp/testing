@@ -6,15 +6,15 @@ import importlib
 import json
 import logging
 import threading
-import re
 
 
 class TestUnit:
     """ Container object which holds all modules imported using 'create' key """
 
-    def __init__(self, json_text):
+    def __init__(self, file_path, json_text):
         self.name = None
         self.description = None
+        self.file_path = file_path
         self.expectations = []
         self.threads = []
         self.registered_events = {}
@@ -65,41 +65,43 @@ class TestUnit:
 
     def handle_execute(self, cmd):
         """Execute a string given in "execute", can use the objects defined in test """
-        exec(cmd["execute"], self.__dict__)
+        try:
+            exec(cmd["execute"], self.__dict__)
+        except Exception as err:
+            output = {"Description": cmd["execute"]}
+            output["status"] = "failed"
+            output["reason"] = "Got Exception " + str(err)
+            self.expectations.append(output)
 
     def handle_expectation(self, cmd):
         """
         Handle Expectations
         """
-        args = []
         output = {"Description": cmd["Description"]}
         expect = cmd["value"].split(".")
-        invalid_action_items = ["action", "value", "Description"]
         mod = getattr(self, expect[0])
-        if len(expect) > 2:
-            args.append(expect[2])
-            logging.debug(args)
-            result = getattr(mod, expect[1])(*args)
-            expectation = {"Description": cmd["Description"]}
-            logging.debug(output)
+        mod.handle_expectation(expect[1:], cmd["expected"], output)
+        self.expectations.append(output)
 
-            match = re.search(str(cmd["expected"]), str(result))
-            if match:
-                output["status"] = "passed"
-            else:
-                output["status"] = "failed"
-                output["expected"] = str(cmd["expected"])
-                output["got"] = str(result)
+    def handle_timeout(self, name, timeout):
+        """
+        On timeout of any operation add entry in expectations to be printed on exit
+        """
+        output = {"Description": "Event timeout"}
+        output["name"] = name
+        output["time"] = str(timeout)
+        output["status"] = "failed"
+        self.expectations.append(output)
 
-            self.expectations.append(output)
-        else:
-            for action_item in cmd:
-                if action_item not in invalid_action_items:
-                    args.append(cmd[action_item])
-            args.append(output)
-            expectation = getattr(mod, expect[1])(*args)
-            logging.info(expectation)
-            self.expectations.append(expectation)
+    def handle_failure(self, name, reason):
+        """
+        On failure of any operation add entry in expectations to be printed on exit
+        """
+        output = {"Description": "Event Failure"}
+        output["name"] = name
+        output["reason"] = str(reason)
+        output["status"] = "failed"
+        self.expectations.append(output)
 
     def parser(self, cmds):
         """
@@ -135,11 +137,9 @@ class TestUnit:
 
                         if not success:
                             logging.debug("Event timedout: " + cmd["name"])
-                            # Returning as something timed out
-                            # :TODO(piyush) Add graceful error handling
-                            return
-
-                        logging.debug("Event received: " + cmd["name"])
+                            self.handle_timeout(cmd["name"], timeout)
+                        else:
+                            logging.debug("Event received: " + cmd["name"])
 
                     elif cmd["action"] == "execute":
                         self.handle_execute(cmd)
@@ -179,8 +179,14 @@ class TestUnit:
 
         self.parser(json_data)
 
+        default_timeout = 20
+
         for thread in self.threads:
-            thread.join()
+            thread.join(default_timeout)
+
+            if thread.is_alive():
+                # thread is still alive after time out, add failure status for that thread
+                self.handle_timeout(thread.name, default_timeout)
 
     def register_event(self, waitfor_event_name, wait_event, name, data):
         """
@@ -228,6 +234,7 @@ class TestUnit:
             Print Test output
         """
         # print output
+        print("File Name: ", self.file_path)
         print("Test: ", self.name)
         print("Test Description:", self.description)
         print("Expectations:")

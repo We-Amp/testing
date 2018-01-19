@@ -22,7 +22,7 @@ def run_test(filepath):
     if filepath.lower().endswith('.json'):
         with open(filepath) as file:
             fdata = file.read()
-            test_unit = jsonparser.TestUnit(fdata)
+            test_unit = jsonparser.TestUnit(filepath, fdata)
             return test_unit
 
 

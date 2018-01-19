@@ -13,6 +13,7 @@ import h2.events
 try:
     from event import EventProcessor
     from http2 import h2utils
+    from response import Response
 except ImportError:
     import os
     import sys
@@ -21,18 +22,20 @@ except ImportError:
     sys.path.append(os.path.join(os.getcwd(), "prototesting"))
     from event import EventProcessor
     from http2 import h2utils
+    from response import Response
 
 
-class Response:
+class H2Response(Response):
     """
     Response holds all data needed to verify the expectations of test
     """
 
     def __init__(self, server, event, address):
+        Response.__init__(self)
         self.server = server
         self.address = address
         try:
-            self.received_data = event.data
+            self.data = event.data
 
         except AttributeError:
             pass
@@ -50,19 +53,32 @@ class Response:
 
         self.type = event.__class__.__name__
 
-    def request_headers(self, field):
-        """
-        Returns request header value of given field
-        """
-        for value in self.headers:
-            if value[0] == field:
-                return value[1]
+    def handle_expectation(self, value, expected, expectation):
+        if "headers" in value[0]:
+            # type is header
+            # headers for h2 conn is list of tuple
+            # and every tuple is a key value pair of header
+            try:
+                got = ""
+                for tup in self.headers:
+                    if tup[0] == value[1]:
+                        got = tup[1]
+                        break
 
-    def data(self):
-        """
-        Return data contained in event
-        """
-        return self.received_data
+                if len(value) > 2:
+                    #extra operation needs to be performed on the value of headers
+                    got = getattr(got, value[2])
+
+                super().match_expectation(expected, got, expectation)
+
+            except Exception as err:
+                expectation["status"] = "failed"
+                expectation["expected"] = str(expected)
+                expectation["reason"] = "Got Exception " + str(err)
+
+        else:
+            # call parent function
+            super().handle_expectation(value[0], expected, expectation)
 
     def send_response_headers(self, headers=None):
         """
@@ -271,7 +287,7 @@ class Server(EventProcessor):
         so that they can be handled async when test specifies it
         """
 
-        response = Response(self, event, address)
+        response = H2Response(self, event, address)
 
         compare_func = lambda event, data: True
 

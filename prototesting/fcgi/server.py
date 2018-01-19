@@ -11,6 +11,7 @@ import flup.server.fcgi_base as fcgi
 
 try:
     from event import EventProcessor
+    from response import Response
 except ImportError:
     import os
     import sys
@@ -18,17 +19,18 @@ except ImportError:
     # this is assuming that the script is called from base of git repo
     sys.path.append(os.path.join(os.getcwd(), "prototesting"))
     from event import EventProcessor
+    from response import Response
 
 
-class Response:
+class FCGIResponse(Response):
     """
     Response holds all data needed to verify the expectations of test
     """
 
     def __init__(self, server, address, data):
+        Response.__init__(self, data)
         self.server = server
         self.address = address
-        self.data = data
 
     def send_record(self,
                     request_id=1,
@@ -37,11 +39,18 @@ class Response:
                     content_length=0,
                     padding_length=0,
                     version=1):
+        """
+        Send a FCGI record to client
+        """
         self.server.send_record(self.address, request_id, type, data,
                                 content_length, padding_length, version)
 
 
 class Server(EventProcessor):
+    """
+    Simple FCGI Server
+    """
+
     def __init__(self, context=None):
         EventProcessor.__init__(self, context)
         self.sock = None
@@ -129,13 +138,13 @@ class Server(EventProcessor):
 
             if fcgi_type == fcgi.FCGI_GET_VALUES:
                 self.event_received("FCGI_GET_VALUES",
-                                    Response(self, address, content_data),
+                                    FCGIResponse(self, address, content_data),
                                     lambda event, data: True, None)
                 logging.info("FCGI_GET_VALUES")
             elif fcgi_type == fcgi.FCGI_BEGIN_REQUEST:
 
                 self.event_received("FCGI_BEGIN_REQUEST",
-                                    Response(self, address, content_data),
+                                    FCGIResponse(self, address, content_data),
                                     lambda event, data: True, None)
                 unused_role, flags = struct.unpack(fcgi.FCGI_BeginRequestBody,
                                                    content_data)
@@ -146,7 +155,7 @@ class Server(EventProcessor):
                 logging.info("FCGI_BEGIN_REQUEST")
             elif fcgi_type == fcgi.FCGI_ABORT_REQUEST:
                 self.event_received("FCGI_ABORT_REQUEST",
-                                    Response(self, address, content_data),
+                                    FCGIResponse(self, address, content_data),
                                     lambda event, data: True, None)
                 logging.info("FCGI_ABORT_REQUEST")
             elif fcgi_type == fcgi.FCGI_PARAMS:
@@ -159,14 +168,14 @@ class Server(EventProcessor):
 
                 logging.info(decoded_data)
                 self.event_received("FCGI_PARAMS",
-                                    Response(self, address, decoded_data),
+                                    FCGIResponse(self, address, decoded_data),
                                     lambda event, data: True, None)
 
             elif fcgi_type == fcgi.FCGI_STDIN:
                 logging.info("FCGI_STDIN")
                 logging.info("Data: " + content_data.decode())
                 self.event_received("FCGI_STDIN",
-                                    Response(self, address, content_data),
+                                    FCGIResponse(self, address, content_data),
                                     lambda event, data: True, None)
 
                 if __name__ == "__main__":
