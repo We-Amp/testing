@@ -63,20 +63,6 @@
     "Description": "Status should be 200 OK"
   },
   {
-    "action": "php.launch",
-    "cmd": "php-fastcgi.sh",
-    "path": "/home/gdb/trafficserver/AtsFastcgi/InterceptCPPAPI/bin/",
-    "arguments": [
-      "stop"
-    ],
-    "name": "php2"
-  },
-  {
-    "action": "php2.scan_for",
-    "name": "phpend",
-    "keyword": "php-cgi"
-  },
-  {
     "action": "ts.launch",
     "cmd": "trafficserver",
     "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
@@ -90,5 +76,19 @@
     "action": "ts2.scan_for",
     "name": "tsr",
     "keyword": "done"
+  },
+  {
+    "action": "php.launch",
+    "cmd": "php-fastcgi.sh",
+    "path": "/home/gdb/trafficserver/AtsFastcgi/InterceptCPPAPI/bin/",
+    "arguments": [
+      "stop"
+    ],
+    "name": "php2"
+  },
+  {
+    "action": "php2.scan_for",
+    "name": "phpend",
+    "keyword": "php-cgi"
   }
 ]

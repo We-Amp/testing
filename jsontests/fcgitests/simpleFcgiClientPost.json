@@ -61,21 +61,7 @@
   },
   {
     "action": "execute",
-    "execute": "print(resp1.received_data);"
-  },
-  {
-    "action": "php.launch",
-    "cmd": "php-fastcgi.sh",
-    "path": "/home/gdb/trafficserver/AtsFastcgi/InterceptCPPAPI/bin/",
-    "arguments": [
-      "stop"
-    ],
-    "name": "php2"
-  },
-  {
-    "action": "php2.scan_for",
-    "name": "phpend",
-    "keyword": "php-cgi"
+    "execute": "print(resp1.data);"
   },
   {
     "action": "ts.launch",
@@ -91,5 +77,19 @@
     "action": "ts2.scan_for",
     "name": "tsr",
     "keyword": "done"
+  },
+  {
+    "action": "php.launch",
+    "cmd": "php-fastcgi.sh",
+    "path": "/home/gdb/trafficserver/AtsFastcgi/InterceptCPPAPI/bin/",
+    "arguments": [
+      "stop"
+    ],
+    "name": "php2"
+  },
+  {
+    "action": "php2.scan_for",
+    "name": "phpend",
+    "keyword": "php-cgi"
   }
 ]
