@@ -10,7 +10,7 @@
   {
     "action": "ts.launch",
     "cmd": "trafficserver",
-    "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
+    "path": "/root/bin/ts-7.1.2_rc/bin",
     "root_access": true,
     "arguments": [
       "start"
@@ -52,7 +52,7 @@
   {
     "action": "ts.launch",
     "cmd": "trafficserver",
-    "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
+    "path": "/root/bin/ts-7.1.2_rc/bin",
     "root_access": true,
     "arguments": [
       "stop"
