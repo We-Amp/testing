@@ -33,7 +33,7 @@
   {
     "action": "ts1.scan_for",
     "name": "tsr",
-    "keyword": "done"
+    "keyword": "OK"
   },
   {
     "create": "fcgi.client",
@@ -75,7 +75,7 @@
   {
     "action": "ts2.scan_for",
     "name": "tsr",
-    "keyword": "done"
+    "keyword": "OK"
   },
   {
     "action": "php.launch",
