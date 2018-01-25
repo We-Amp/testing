@@ -246,7 +246,7 @@ class Client(EventProcessor):
             self.event_received(event_name, response, lambda event, data: True,
                                 event)
 
-        # Not sure if these all are needed, special handlin can/should be added
+        # Not sure if these all are needed, special handling can/should be added
         # on need to basis
 
         if isinstance(event, h2.events.AlternativeServiceAvailable):

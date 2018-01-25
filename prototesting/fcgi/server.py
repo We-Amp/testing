@@ -195,7 +195,7 @@ class Server(EventProcessor):
 
             elif fcgi_type == fcgi.FCGI_DATA:
                 self.event_received("FCGI_DATA",
-                                    Response(self, address, content_data),
+                                    FCGIResponse(self, address, content_data),
                                     lambda event, data: True, None)
                 logging.info("FCGI_DATA")
             elif request_id == fcgi.FCGI_NULL_REQUEST_ID:
