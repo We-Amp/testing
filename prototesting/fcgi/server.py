@@ -189,8 +189,6 @@ class Server(EventProcessor):
                         self.send_record(
                             address, type="FCGI_STDOUT", data="Yeello3\r\n")
 
-                        self.send_record(
-                            address, type="FCGI_STDOUT", data="\r\n\r\n")
                         self.send_record(address)
 
             elif fcgi_type == fcgi.FCGI_DATA:
