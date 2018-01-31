@@ -1,6 +1,6 @@
 [
   {
-    "TestName": "FCGI Server and Client POST",
+    "TestName": "FCGI Server and Client GET",
     "Description": "Test fcgi GET using both client and server"
   },
   {

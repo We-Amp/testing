@@ -41,12 +41,12 @@
   },
   {
     "action": "fcgi.request",
-    "url": "http://localhost:9080/ajaxExample.php",
+    "url": "http://localhost:9080/html/ajaxExample.php",
     "name": "request1"
   },
   {
     "action": "request1.get",
-    "url": "http://localhost:9080/ajaxExample.php",
+    "url": "http://localhost:9080/html/ajaxExample.php",
     "headers": {
       "Connection": "keep-alive"
     },
@@ -54,7 +54,7 @@
   },
   {
     "action": "execute",
-    "execute": "print(resp1);"
+    "execute": "print(resp1.data);"
   },
   {
     "action": "expect",
