@@ -7,6 +7,7 @@ import logging
 import subprocess
 import threading
 from os.path import join
+from os import environ
 
 try:
     from event import EventProcessor
@@ -29,7 +30,12 @@ class Launcher(EventProcessor):
         self.output = None
         self.buffer = io.StringIO()
 
-    def launch(self, cmd, arguments=None, path=None, root_access=False):
+    def launch(self,
+               cmd,
+               arguments=None,
+               path=None,
+               root_access=False,
+               env_path=None):
         """
         Launch the current command and store its output
         """
@@ -39,7 +45,15 @@ class Launcher(EventProcessor):
             if "sudo" not in cmd:
                 args_list.append("sudo")
 
-        if path:
+        if env_path:
+            epath = environ.get(env_path)
+            if not epath:
+                logging.error(env_path + " does not exist")
+                return
+
+            cmd = join(epath, cmd)
+
+        elif path:
             cmd = join(path, cmd)
             logging.debug(cmd)
 
