@@ -33,4 +33,7 @@ Steps for running
     - `python3.6 prototesting/prototesting.py jsontests/`
 
   - Run FCGI test
+    - Export ATS_EXEC and PHP_CGI varibles with path to respective binaries e.g.
+      - `export PHP_CGI=/home/gdb/trafficserver/AtsFastcgi/InterceptCPPAPI/bin/`
+      - `export ATS_EXEC=/home/gdb/trafficserver/opt/ts7.1.1/`
     - `python3.6 prototesting/prototesting.py jsontests/fcgi/fcgiServerGet.json`
