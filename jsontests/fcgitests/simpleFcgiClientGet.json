@@ -10,7 +10,7 @@
   {
     "action": "php.launch",
     "cmd": "php-fastcgi.sh",
-    "path": "/home/gdb/trafficserver/AtsFastcgi/InterceptCPPAPI/bin/",
+    "env_path": "PHP_CGI",
     "arguments": [
       "start"
     ],
@@ -22,8 +22,8 @@
   },
   {
     "action": "ts.launch",
-    "cmd": "trafficserver",
-    "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
+    "cmd": "bin/trafficserver",
+    "env_path": "ATS_EXEC",
     "root_access": true,
     "arguments": [
       "start"
@@ -64,8 +64,8 @@
   },
   {
     "action": "ts.launch",
-    "cmd": "trafficserver",
-    "path": "/home/gdb/trafficserver/opt/ts7.1.1/bin/",
+    "cmd": "bin/trafficserver",
+    "env_path": "ATS_EXEC",
     "root_access": true,
     "arguments": [
       "stop"
@@ -80,7 +80,7 @@
   {
     "action": "php.launch",
     "cmd": "php-fastcgi.sh",
-    "path": "/home/gdb/trafficserver/AtsFastcgi/InterceptCPPAPI/bin/",
+    "env_path": "PHP_CGI",
     "arguments": [
       "stop"
     ],
