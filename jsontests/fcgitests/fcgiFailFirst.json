@@ -9,8 +9,8 @@
   },
   {
     "action": "ts.launch",
-    "cmd": "trafficserver",
-    "path": "/root/bin/ts-7.1.2_rc/bin",
+    "cmd": "bin/trafficserver",
+    "env_path": "ATS_EXEC",
     "root_access": true,
     "arguments": [
       "start"
@@ -179,8 +179,8 @@
   },
   {
     "action": "ts.launch",
-    "cmd": "trafficserver",
-    "path": "/root/bin/ts-7.1.2_rc/bin",
+    "cmd": "bin/trafficserver",
+    "env_path": "ATS_EXEC",
     "root_access": true,
     "arguments": [
       "stop"

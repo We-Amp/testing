@@ -1,7 +1,7 @@
 [
   {
-    "TestName": "FCGI client POST",
-    "Description": "Simple fcgi POST using php-fastgi and ATS"
+    "TestName": "FCGI client Large headers",
+    "Description": "Simple fcgi test which tests large(>128) header fields"
   },
   {
     "create": "externallauncher.launcher",
@@ -33,7 +33,7 @@
   {
     "action": "ts1.scan_for",
     "name": "tsr",
-    "keyword": "OK"
+    "keyword": "done"
   },
   {
     "create": "fcgi.client",
@@ -45,13 +45,18 @@
     "name": "request1"
   },
   {
-    "action": "request1.post",
+    "action": "request1.get",
     "url": "http://localhost:9080/html/welcome.php",
     "headers": {
-      "Content-Type": "application/x-www-form-urlencoded"
+      "Connection": "keep-alive",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/63.0.3239.84 Chrome/63.0.3239.84 Safari/537.36",
+      "Access-Control-Request-Headers92844444444444444444444fjkkkkkkkkkkkkkkkk3rfnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnjk2143244234234": "1"
     },
-    "data": "name=abc&email=xyz%40abc.mma",
     "name": "resp1"
+  },
+  {
+    "action": "execute",
+    "execute": "print(resp1.data);"
   },
   {
     "action": "expect",
@@ -62,12 +67,8 @@
   {
     "action": "expect",
     "value": "resp1.data",
-    "expected": "xyz@abc.mma",
-    "Description": "Mail id should be same as post(xyz@abc.mma)"
-  },
-  {
-    "action": "execute",
-    "execute": "print(resp1.data);"
+    "expected": "Mozilla/5.0",
+    "Description": "Mozilla (part of user-agent) should be present"
   },
   {
     "action": "ts.launch",
@@ -82,7 +83,7 @@
   {
     "action": "ts2.scan_for",
     "name": "tsr",
-    "keyword": "OK"
+    "keyword": "done"
   },
   {
     "action": "php.launch",

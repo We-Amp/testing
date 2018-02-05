@@ -33,6 +33,7 @@ class FCGIResponse(Response):
         try:
             self.data = event.read()
         except socket.timeout as err:
+            logging.error("Got exception while reading data")
             self.data = str(err)
 
         self.headers = event.headers
@@ -84,8 +85,13 @@ class Client(EventProcessor):
     def get(self, url, headers=None):
         parsed_url = urlparse(url)
         logging.info(parsed_url.path)
+        req_url = parsed_url.path
+
+        if parsed_url.query:
+            req_url = req_url + "?" + parsed_url.query
+
         try:
-            self.conn.request('GET', parsed_url.path, headers=headers)
+            self.conn.request('GET', req_url, headers=headers)
             resp = self.conn.get_response()
             # :TODO(Piyush) Add event to signify reception of event
             return FCGIResponse(resp)
