@@ -5,7 +5,7 @@ import logging
 import socket
 from urllib.parse import urlparse
 
-from hyper import HTTPConnection
+import requests
 
 try:
     from event import EventProcessor
@@ -30,14 +30,9 @@ class FCGIResponse(Response):
 
         self.type = event.__class__.__name__
 
-        try:
-            self.data = event.read()
-        except socket.timeout as err:
-            logging.error("Got exception while reading data")
-            self.data = str(err)
-
+        self.data = event.text
         self.headers = event.headers
-        self.headers[":status"] = str(event.status)
+        self.headers[":status"] = str(event.status_code)
 
     def handle_expectation(self, value, expected, expectation):
         if "headers" in value[0]:
@@ -66,51 +61,27 @@ class Client(EventProcessor):
         self.conn = None
 
     def request(self, url):
-        parsed_url = urlparse(url)
-        host = parsed_url.netloc
-        secure = True if "https" in parsed_url.scheme else False
-
-        port = '80'
-        if ':' in host:
-            # host contains a port so we will use that port
-            url_location = host.split(":")
-            host = url_location[0]
-            port = url_location[1]
-
-        logging.info("host is %s and port is %s", host, port)
-
-        self.conn = HTTPConnection(host, port, secure=secure)
+        # :TODO(Piyush) Remove this if not required
         return self
 
     def get(self, url, headers=None):
-        parsed_url = urlparse(url)
-        logging.info(parsed_url.path)
-        req_url = parsed_url.path
-
-        if parsed_url.query:
-            req_url = req_url + "?" + parsed_url.query
-
         try:
-            self.conn.request('GET', req_url, headers=headers)
-            resp = self.conn.get_response()
+            # :TODO(Piyush) Set a reasonable timeout value
+            resp = requests.get(url, headers=headers, timeout=5)
             # :TODO(Piyush) Add event to signify reception of event
             return FCGIResponse(resp)
-        except socket.timeout as err:
+        except requests.exceptions.ConnectionError as err:
             self.context.handle_failure("Get " + url,
                                         "Got Exception " + str(err))
             return Response(str(err))
 
     def post(self, url, headers=None, data=""):
-        parsed_url = urlparse(url)
-        logging.info(parsed_url.path)
         try:
-            self.conn.request(
-                'POST', parsed_url.path, headers=headers, body=data.encode())
-            resp = self.conn.get_response()
-            logging.info(dir(resp))
+            # :TODO(Piyush) Set a reasonable timeout value
+            resp = requests.post(url, headers=headers, data=data, timeout=5)
             # :TODO(Piyush) Add event to signify reception of event
             return FCGIResponse(resp)
-        except socket.timeout as err:
+        except requests.exceptions.ConnectionError as err:
             self.context.handle_failure("Post " + url,
                                         "Got Exception " + str(err))
             return Response(str(err))
