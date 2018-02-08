@@ -1,7 +1,7 @@
 [
   {
-    "TestName": "FCGI Server and Client Chunked Error",
-    "Description": "Test chunked response from fcgi server"
+    "TestName": "FCGI Server and Client Fail First",
+    "Description": "First request with cache headers should fail but next one should pass"
   },
   {
     "create": "externallauncher.launcher",
@@ -55,22 +55,6 @@
             "Connection": "keep-alive"
           },
           "name": "resp1"
-        },
-        {
-          "action": "execute",
-          "execute": "print(resp1.headers)"
-        },
-        {
-          "action": "expect",
-          "value": "resp1.response_headers.:status",
-          "expected": 200,
-          "Description": "Request 1 Status should be 200 OK"
-        },
-        {
-          "action": "expect",
-          "value": "resp1.data",
-          "expected": "First chunk",
-          "Description": "Request 1 data should be chunked"
         },
         {
           "action": "fcgi.request",
