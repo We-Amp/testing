@@ -1,5 +1,5 @@
 """
-Client for handling fcgi requests
+Client for handling HTTP requests
 """
 import logging
 import socket
@@ -20,7 +20,7 @@ except ImportError:
     from response import Response
 
 
-class FCGIResponse(Response):
+class HTTPResponse(Response):
     """
     Response holds all data needed to verify the expectations of test
     """
@@ -69,7 +69,7 @@ class Client(EventProcessor):
             # :TODO(Piyush) Set a reasonable timeout value
             resp = requests.get(url, headers=headers, timeout=5)
             # :TODO(Piyush) Add event to signify reception of event
-            return FCGIResponse(resp)
+            return HTTPResponse(resp)
         except requests.exceptions.ConnectionError as err:
             self.context.handle_failure("Get " + url,
                                         "Got Exception " + str(err))
@@ -80,7 +80,7 @@ class Client(EventProcessor):
             # :TODO(Piyush) Set a reasonable timeout value
             resp = requests.post(url, headers=headers, data=data, timeout=5)
             # :TODO(Piyush) Add event to signify reception of event
-            return FCGIResponse(resp)
+            return HTTPResponse(resp)
         except requests.exceptions.ConnectionError as err:
             self.context.handle_failure("Post " + url,
                                         "Got Exception " + str(err))
@@ -98,7 +98,9 @@ def create(context):
 def main():
     """Standalone client instance"""
     client = Client()
-    client.request("http://localhost:9080/abc.php")
+    resp = client.get("http://localhost:9080/abc.html")
+    print(resp.data)
+    print(resp.headers)
 
 
 if __name__ == "__main__":
