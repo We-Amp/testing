@@ -23,7 +23,7 @@
     "keyword": "done"
   },
   {
-    "create": "fcgi.client",
+    "create": "http1.client",
     "name": "fcgi"
   },
   {
