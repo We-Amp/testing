@@ -44,12 +44,7 @@
     "list": [
       [
         {
-          "action": "fcgi.request",
-          "url": "http://localhost:9080/ajaxExample.php",
-          "name": "request1"
-        },
-        {
-          "action": "request1.get",
+          "action": "fcgi.get",
           "url": "http://localhost:9080/ajaxExample.php",
           "headers": {
             "Connection": "keep-alive"
@@ -73,12 +68,7 @@
           "Description": "Request1 Data should be same"
         },
         {
-          "action": "fcgi.request",
-          "url": "http://localhost:9080/ajaxExample.php",
-          "name": "request2"
-        },
-        {
-          "action": "request2.get",
+          "action": "fcgi.get",
           "url": "http://localhost:9080/ajaxExample.php",
           "headers": {
             "Connection": "keep-alive"
