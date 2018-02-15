@@ -40,12 +40,7 @@
     "name": "fcgi"
   },
   {
-    "action": "fcgi.request",
-    "url": "http://localhost:9080/html/welcome.php",
-    "name": "request1"
-  },
-  {
-    "action": "request1.post",
+    "action": "fcgi.post",
     "url": "http://localhost:9080/html/welcome.php",
     "headers": {
       "Content-Type": "application/x-www-form-urlencoded"

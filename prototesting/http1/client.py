@@ -58,11 +58,6 @@ class HTTPResponse(Response):
 class Client(EventProcessor):
     def __init__(self, context=None):
         EventProcessor.__init__(self, context)
-        self.conn = None
-
-    def request(self, url):
-        # :TODO(Piyush) Remove this if not required
-        return self
 
     def get(self, url, headers=None):
         try:
