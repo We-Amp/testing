@@ -20,13 +20,13 @@ class Response:
         Sublclasses will implement this function and match the expectations
         """
         try:
-            got = getattr(self, value)
+            got = getattr(self, value[0])
             self.match_expectation(expected, got, expectation)
         except Exception as err:
             # :TODO(Piyush): Move this to a function so that subclasses can handle this cleanly
             expectation["status"] = "failed"
             expectation["expected"] = str(expected)
-            expectation["value"] = str(value)
+            expectation["value"] = str(value[0])
             expectation["reason"] = "Got Exception " + str(err)
 
     def match_expectation(self, expected, got, expectation):

@@ -1,0 +1,92 @@
+[
+  {
+    "TestName": "TCP Client - Server",
+    "Description": "This test creates a simple client and server"
+  },
+  {
+    "create": "tcp.server",
+    "name": "serv"
+  },
+  {
+    "action": "serv.config",
+    "port": "9999",
+    "host": "localhost"
+  },
+  {
+    "action": "serv.start"
+  },
+  {
+    "create": "tcp.client",
+    "name": "tc"
+  },
+  {
+    "action": "parallel",
+    "list": [
+      [
+        {
+          "action": "tc.connect",
+          "host": "localhost",
+          "port": "9999",
+          "name": "request1"
+        },
+        {
+          "action": "waitfor",
+          "event": "request1.OnDataReceived",
+          "name": "request1data",
+          "data": ""
+        },
+        {
+          "action": "expect",
+          "value": "request1data.data",
+          "expected": "HelloClient",
+          "Description": "Server should send HelloClient"
+        },
+        {
+          "action": "request1.send_data",
+          "data": "HelloServer"
+        },
+        {
+          "action": "request1.stop"
+        }
+      ],
+      [
+        {
+          "action": "waitfor",
+          "event": "serv.OnClientConnected",
+          "name": "tcpreq1",
+          "data": ""
+        },
+        {
+          "action": "execute",
+          "execute": "print(dir(tcpreq1))"
+        },
+        {
+          "action": "tcpreq1.send_data",
+          "data": "HelloClient"
+        },
+        {
+          "action": "waitfor",
+          "event": "serv.OnDataReceived",
+          "name": "tcpdata1",
+          "data": ""
+        },
+        {
+          "action": "execute",
+          "execute": "print(tcpdata1.data)"
+        },
+        {
+          "action": "expect",
+          "value": "tcpdata1.data",
+          "expected": "HelloServer",
+          "Description": "Client should send HelloServer"
+        },
+        {
+          "action": "tcpreq1.close_conn"
+        },
+        {
+          "action": "serv.kill"
+        }
+      ]
+    ]
+  }
+]
